@@ -1,0 +1,66 @@
+name: release
+
+# 推送 v* 标签时自动构建并把 jar 附到 GitHub Release。
+# Release 说明默认由 GitHub 依据提交自动生成，发布后可在网页上改写成 CHANGELOG 的分节内容。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # 创建 Release 需要写权限
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: 下载 Carpet 本体
+        run: |
+          set -euo pipefail
+          MC=$(sed -n 's/^minecraft_version=//p' gradle.properties)
+          JAR=$(sed -n 's/^carpet_jar=//p' gradle.properties)
+          echo "minecraft=$MC  carpet_jar=$JAR"
+          mkdir -p libs
+          URL=$(curl -sS -H 'User-Agent: carpet-cof-addition-ci' \
+            "https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D" \
+            | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
+          if [ -z "$URL" ]; then
+            echo "::error::Modrinth 上没有找到 $JAR（检查 gradle.properties 的 carpet_jar）"
+            exit 1
+          fi
+          curl -sSL -o "libs/$JAR" "$URL"
+          ls -l libs
+
+      - name: 构建
+        run: |
+          chmod +x ./gradlew   # 仓库在 Windows 上提交，可能没带可执行位
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: 整理产物（文件名里的空格换成连字符，下载链接更好看）
+        run: |
+          set -euo pipefail
+          NAME=$(sed -n 's/^archives_base_name=//p' gradle.properties)
+          VER=$(sed -n 's/^mod_version=//p' gradle.properties)
+          mkdir -p out
+          cp "build/libs/${NAME}-${VER}.jar"           "out/carpet-cof-addition-${VER}.jar"
+          cp "build/libs/${NAME}-${VER}-sources.jar"   "out/carpet-cof-addition-${VER}-sources.jar"
+          ls -l out
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" out/*.jar \
+            --title "${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            --verify-tag

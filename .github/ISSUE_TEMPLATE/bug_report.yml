@@ -1,0 +1,89 @@
+name: Bug 反馈
+description: 结冰、产出、水桶/水瓶规则等行为与文档不符时使用
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请尽量填全下面几项。
+        **`/cofdebug data <坐标>` 的输出通常能直接指出问题卡在哪一条**，强烈建议附上。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 期望的现象，以及实际出现的现象
+      placeholder: |
+        期望：装满水的炼药锅在雪原会结冰
+        实际：等了十分钟没有反应
+    validations:
+      required: true
+
+  - type: input
+    id: mc
+    attributes:
+      label: Minecraft 版本
+      placeholder: "1.21.4"
+    validations:
+      required: true
+
+  - type: input
+    id: carpet
+    attributes:
+      label: Carpet 版本
+      description: "/carpet version 的输出，例如 1.4.161+v241203"
+    validations:
+      required: true
+
+  - type: input
+    id: modver
+    attributes:
+      label: 本模组版本
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env
+    attributes:
+      label: 运行环境
+      options:
+        - 单人游戏
+        - 自建服务端
+        - 其它
+    validations:
+      required: true
+
+  - type: textarea
+    id: rules
+    attributes:
+      label: 相关规则设置
+      description: "/carpet list CoF 的输出，或说明你改了哪几条规则"
+      render: text
+
+  - type: textarea
+    id: cofdebug
+    attributes:
+      label: "/cofdebug data <坐标> 的输出"
+      description: 颜色不用管，原样贴出即可；若命令不可用，请说明 cofDebugCommand 规则的值
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或崩溃报告
+      description: logs/latest.log 里的相关片段，有崩溃报告则一并附上
+      render: text
+
+  - type: checkboxes
+    id: selfcheck
+    attributes:
+      label: 自查
+      options:
+        - label: 已读过规则文档与命令文档
+          required: true
+        - label: 已确认区块模拟距离内有玩家或 Carpet 假人（只 forceload 不会触发检测）
+          required: true
+        - label: 已搜索过现有 issue，确认没有重复
+          required: true

@@ -1,0 +1,63 @@
+name: build
+
+# push 到 main、以及所有 PR 都会跑一次，用来确认源码可编译。
+# 注意：CI 不需要 -PnoFabricRepo，也不用 local-maven/ 镜像 —— 那套绕行只是给国内本机用的，
+# GitHub 的构建机能正常访问 maven.fabricmc.net。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      # libs/*.jar 在 .gitignore 里，构建机没有 Carpet 本体，这里按 gradle.properties 的版本自动取回。
+      - name: 下载 Carpet 本体
+        run: |
+          set -euo pipefail
+          MC=$(sed -n 's/^minecraft_version=//p' gradle.properties)
+          JAR=$(sed -n 's/^carpet_jar=//p' gradle.properties)
+          echo "minecraft=$MC  carpet_jar=$JAR"
+          mkdir -p libs
+          URL=$(curl -sS -H 'User-Agent: carpet-cof-addition-ci' \
+            "https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D" \
+            | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
+          if [ -z "$URL" ]; then
+            echo "::error::Modrinth 上没有找到 $JAR（检查 gradle.properties 的 carpet_jar）"
+            exit 1
+          fi
+          curl -sSL -o "libs/$JAR" "$URL"
+          ls -l libs
+
+      - name: 构建
+        run: |
+          chmod +x ./gradlew   # 仓库在 Windows 上提交，可能没带可执行位
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: 校验产物
+        run: |
+          ls -l build/libs
+          NAME=$(sed -n 's/^archives_base_name=//p' gradle.properties)
+          VER=$(sed -n 's/^mod_version=//p' gradle.properties)
+          test -f "build/libs/${NAME}-${VER}.jar"
+          test -f "build/libs/${NAME}-${VER}-sources.jar"
+          echo "产物齐全：${NAME}-${VER}.jar / -sources.jar"
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: carpet-cof-addition
+          path: build/libs/*.jar
+          if-no-files-found: error
