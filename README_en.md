@@ -9,9 +9,11 @@
 | Minecraft | **1.21.4** | — |
 | Fabric Loader | **≥ 0.16.9** | <https://fabricmc.net/use/installer/> |
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203** (MC 1.21.4 build) | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
-| Java | **21** | [Eclipse Temurin 21](https://adoptium.net/temurin/releases/?version=21) |
+| Java | **21** | [Temurin 21 (Windows x64 JDK)](https://adoptium.net/temurin/releases/?version=21&os=windows&arch=x64&package=jdk) · [Microsoft OpenJDK 21](https://learn.microsoft.com/java/openjdk/download) |
 
 Download this mod from [Releases](../../releases), or build it yourself as described in the [development docs](docs/en/development.md).
+
+You only need to install Java 21 yourself for a **self-hosted server** or when launching with a manually specified Java: the official launcher ships its own runtime, and launchers such as HMCL / PCL can download one automatically.
 
 ## Documentation
 
