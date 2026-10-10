@@ -30,11 +30,11 @@ All output is a two-column "label + value" layout. Results are conveyed by **col
 
 | Command | Purpose | Changes the world |
 | --- | --- | --- |
-| `/cofdebug tick <pos>` | **Step one freeze check manually**, reporting only the counter and the result | Yes (may freeze and drop) |
+| `/cofdebug tick <pos>` | **Step one freeze check manually**, reporting the target, the counter and the result; refused while the master switch is off | Yes (may freeze and drop) |
 | `/cofdebug data <pos>` | **Read-only** dump of every condition and the progress at that spot | No (creates nothing) |
 | `/cofdebug data <pos> <value>` | Overwrite the stored counter (`0` = clear the record) | Yes (data only) |
 | `/cofdebug use <pos> [player]` | Make a player **actually right-click** the block with the held item, reporting before/after | Yes (equivalent to the player doing it) |
-| `/cofdebug bucketcheck [player]` | Call vanilla's "what is left in hand" logic to validate the bucket rule | Effectively read-only (simulated on copies) |
+| `/cofdebug bucketcheck [player]` | Call vanilla's "what is left in hand" logic to validate the bucket rule; **skipped entirely in creative** | Effectively read-only (simulated on copies) |
 
 ---
 
@@ -49,12 +49,15 @@ Runs one freeze check, as if the random tick had picked this column.
 ```
 [cof] /cofdebug tick  8, -59, 8
   步进     1 次结冰检查         (step: one freeze check)
+  目标     8, -59, 8            (target: the cauldron actually handled)
   累计     0 / 1                (progress / threshold)
-  本次检查 结冰了               (this check: froze)
+  本次检查 结冰并产出产物        (this check: froze and produced)
 ```
 
+* `目标` (target) is the cauldron that is actually handled: the column's surface block or the one below it; red when the column has no water cauldron
 * `累计` is "current warm-up progress / threshold for the current product" (`0 / 1` forever for `ice`)
-* A green `本次检查` means it really froze and dropped a product this time
+* `本次检查` has three outcomes: `没有结冰` (red), `条件满足，本次只累计（还没到产出次数）` (aqua), `结冰并产出产物` (green)
+* **While the master switch `waterCauldronFreezing` is off this command refuses to run** (prints `未执行` and the reason, and changes nothing)
 
 To test **deterministically** (ignoring chance), suppress the chance gate and step manually:
 
@@ -126,7 +129,7 @@ Overwrites the stored counter, useful to reproduce a mid-warm-up state.
 ```
 
 * Accepted range: `0` ~ `100000`
-* Writing `0` appends "（已清空该位置的记录）" (record cleared) and really deletes the record
+* Writing `0` uses the read-only path: `已清空该位置的记录` when a record existed, `该位置本来就没有记录` when it did not (no data file is created either way)
 * With `packed_ice` / `blue_ice` this lets you push a cauldron straight to "the next freeze produces"
 
 ---
@@ -195,7 +198,7 @@ Calls vanilla's `ItemUtils#createFilledResult` — the method that decides what 
 | `对照·岩浆桶` control: lava bucket | Lava buckets must not be affected by this rule (guards against collateral damage) |
 | `对照·空桶装水` control: empty bucket filling | Filling an empty bucket from a cauldron must not be affected |
 
-In creative mode the "infinite materials" branch is used, so the numbers do not represent survival; those rows are shown in gray with a hint.
+**In creative mode this command is skipped entirely**: the vanilla logic takes the "infinite materials" branch there, which would hand the test items to the player, and the numbers would not reflect survival. Test with a survival player.
 
 ---
 

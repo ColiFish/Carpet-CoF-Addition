@@ -70,7 +70,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 
    ```
    /carpet cauldronFreezingChance 1000000
-   /cofdebug tick <坐标>
+   /cofdebug tick <坐标>     # 注意：总开关 waterCauldronFreezing 必须先打开，否则命令拒绝执行
    /carpet cauldronFreezingChance 48
    ```
 

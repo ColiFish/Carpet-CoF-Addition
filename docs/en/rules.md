@@ -229,7 +229,7 @@ What you keep is **the original bottle** (data components and custom name includ
 
 The check runs on every execution, so **changes apply immediately with no restart**. The server console and RCON have permission level 4, so they work with the default setting.
 
-See [Commands](commands.md) for detailed usage.
+**Only `false` or `0`~`4` are accepted**: an unparsable value or a negative number disables the command outright instead of silently falling back to "requires OP".
 
 ---
 
