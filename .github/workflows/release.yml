@@ -1,8 +1,6 @@
 name: release
 
-# 推送 v* 标签时自动构建并把 jar 附到 GitHub Release。
-# Release 说明默认由 GitHub 依据提交自动生成，发布后可在网页上改写成 CHANGELOG 的分节内容。
-# 发布由维护者在 GitHub Releases 页面手动进行。
+# 由维护者在 GitHub Releases 页面手动发布；需要 CI 代劳时才在 Actions 里手动触发。
 # 这个工作流**不在推 tag 时自动触发**，避免与手动发布互相覆盖；
 # 需要 CI 代劳时，在 Actions → release → Run workflow 里填 tag 手动触发。
 on:
