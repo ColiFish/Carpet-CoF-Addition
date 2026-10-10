@@ -96,7 +96,7 @@ Prints **every condition** at that position, so you can see at a glance which on
 | Row (Chinese label) | Meaning |
 | --- | --- |
 | `规则` rules | Current values of the four related rules (red = master switch is off) |
-| `位置` position | The cauldron actually being reported. **May differ from the position you typed** — if the typed position is not a cauldron, the command searches up to 4 blocks below that column's surface (for cauldrons covered by a block) |
+| `位置` position | The cauldron actually being reported. **May differ from the position you typed**: it prefers the cauldron the freeze logic would really handle (the column's surface block or the one below it), and only then searches up to 4 blocks further down (for cauldrons fully covered by blocks) |
 | `方块` block | Block id at that position (red = not a water cauldron) |
 | `水位` water level | **Only printed when the block is a water cauldron** (red = does not satisfy the full-water requirement, or any-level mode is active) |
 | `水位条件` level rule | Whether the mod currently requires a full cauldron (`需要满水`) or accepts any level (`任意水位`) |

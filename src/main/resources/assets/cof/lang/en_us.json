@@ -1,4 +1,12 @@
 {
+  "carpet.rule.waterCauldronFreezing.name": "Water Cauldron Freezing",
+  "carpet.rule.cauldronFreezingProduct.name": "Freezing Product",
+  "carpet.rule.cauldronFreezingRequiresFullWater.name": "Requires Full Water",
+  "carpet.rule.cauldronFreezingChance.name": "Freezing Rate",
+  "carpet.rule.waterBucketNotConsumed.name": "Water Bucket Not Consumed",
+  "carpet.rule.waterBottleNotConsumed.name": "Water Bottle Not Consumed",
+  "carpet.rule.cofDebugCommand.name": "CoF Debug Tool",
+
   "carpet.category.CoF": "CoF",
   "carpet.rule.cofDebugCommand": "CoF Debug Tool",
   "carpet.rule.cofDebugCommand.desc": "Whether the /cofdebug diagnostic command is enabled; 0-4 = enabled and only usable by players whose permission level reaches that number",

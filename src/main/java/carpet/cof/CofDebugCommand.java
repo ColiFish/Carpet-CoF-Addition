@@ -131,7 +131,8 @@ public final class CofDebugCommand {
      * 权限判定：读取规则 {@code cofDebugCommand}。
      *
      * <p>{@code false} = 关闭；数字 = 所需的权限等级。命令解析时都会重新判定，
-     * 所以在游戏里改规则立刻生效。值无法解析时退回默认的 2 级。</p>
+     * 所以在游戏里改规则立刻生效。<b>解析失败或出现负数时一律视为关闭</b>（fail-closed），不会静默放宽成"需要 OP"；
+     * 等级超过 4 时按 4 处理。</p>
      */
     private static boolean isEnabledFor(CommandSourceStack source) {
         String mode = CofSettings.cofDebugCommand;
@@ -239,28 +240,48 @@ public final class CofDebugCommand {
                                     BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
                                     int value = IntegerArgumentType.getInteger(context, "value");
 
+                                    // 写在哪口锅上：与结冰逻辑保持一致（该列地表 / 地表下一格）。
+                                    // 输入坐标对不上时退回字面坐标，并在输出里点明，避免"写入成功却读不到"。
+                                    BlockPos cauldron = CauldronFreezing.findCauldron(level, pos);
+                                    boolean onCauldron = cauldron != null;
+                                    BlockPos writePos = onCauldron ? cauldron : pos;
+
                                     if (value == 0) {
                                         // 清除走"只读不创建"：否则在一个从没预热过的世界里敲一条
                                         // "清空一条并不存在的记录"，也会把数据文件建出来。
                                         CauldronFreezeData data = CauldronFreezeData.getIfPresent(level);
-                                        boolean had = data != null && data.get(pos) != 0;
+                                        boolean had = data != null && data.get(writePos) != 0;
                                         if (had) {
-                                            data.set(pos, 0);
+                                            data.set(writePos, 0);
                                         }
-                                        reply(context, header("data", pos.toShortString())
+                                        MutableComponent cleared = header("data", writePos.toShortString())
                                                 .append(nl())
                                                 .append(row("写入结果", had
                                                         ? "已清空该位置的记录"
-                                                        : "该位置本来就没有记录", VAL)));
+                                                        : "该位置本来就没有记录", VAL));
+                                        if (!onCauldron) {
+                                            cleared = cleared.append(nl())
+                                                    .append(row("注意", "该列没有水炼药锅，操作的是输入坐标本身", BAD));
+                                        }
+                                        reply(context, cleared);
                                         return 1;
                                     }
 
                                     // 只取一次，避免重复 computeIfAbsent
                                     CauldronFreezeData data = CauldronFreezeData.get(level);
-                                    data.set(pos, value);
-                                    reply(context, header("data", pos.toShortString())
+                                    data.set(writePos, value);
+                                    MutableComponent written = header("data", writePos.toShortString())
                                             .append(nl())
-                                            .append(row("写入结果", "现在累计 " + data.get(pos) + " 次", VAL)));
+                                            .append(row("写入结果", "现在累计 " + data.get(writePos) + " 次", VAL));
+                                    if (!onCauldron) {
+                                        written = written.append(nl())
+                                                .append(row("注意", "该列没有水炼药锅，写入的是输入坐标本身", BAD));
+                                    }
+                                    if (!CofSettings.waterCauldronFreezing) {
+                                        written = written.append(nl())
+                                                .append(row("提示", "总开关 waterCauldronFreezing 已关闭，这份记录不会被用到", BAD));
+                                    }
+                                    reply(context, written);
                                     return 1;
                                 }))));
 
