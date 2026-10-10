@@ -6,7 +6,7 @@
 
 - [ ] 本地构建通过：`gradle clean build -PnoFabricRepo`（或用 `./gradlew clean build -PnoFabricRepo`）
 - [ ] 游戏内实测过，并在下面写清测试方式（生存/创造、玩家/假人、用了哪条 `/cofdebug`）
-- [ ] 中英文档同步更新（`docs/zh/` 与 `docs/en/` 是两份，容易只改一份）
+- [ ] 中英文档同步更新（`docs/zh/` 与 `docs/en/` 是两份，容易只改一份）；构建、测试与新增规则的步骤见 `docs/zh/dev-notes.md`
 - [ ] 新增规则时：三个翻译键齐全（`carpet.rule.<名>.name` / `carpet.rule.<名>` / `carpet.rule.<名>.desc`），README 规则表已加行
 - [ ] 新增文件时：已带 SPDX 头（`// SPDX-License-Identifier: MIT` 与版权行）
 - [ ] `CHANGELOG.md` 已记录，且未使用表情符号
