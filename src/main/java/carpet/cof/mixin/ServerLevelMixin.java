@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>原版 {@code tickChunk} 里的降水循环是
  * {@code for (i = 0; i < randomTickSpeed; i++) if (random.nextInt(48) == 0) tickPrecipitation(...)}。
- * 为了让检测频率与原版<b>逐位一致</b>（而不是自己拍一个数字，早先就是拍成了 4 列/区块 tick，
+ * 为了让检测频率与原版<b>结构与概率门一致</b>（而不是自己拍一个数字，早先就是拍成了 4 列/区块 tick，
  * 结果比原版快 64 倍），这里把 {@code randomTickSpeed} 原样转给
  * {@link CauldronFreezing#tickChunk}，由它复刻同一个循环结构与 1/48 概率门。</p>
  */

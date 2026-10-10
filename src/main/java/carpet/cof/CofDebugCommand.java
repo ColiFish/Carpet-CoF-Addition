@@ -138,14 +138,18 @@ public final class CofDebugCommand {
         if (mode == null || mode.equalsIgnoreCase("false")) {
             return false;
         }
-        if (mode.equalsIgnoreCase("true")) {
-            return source.hasPermission(2);
-        }
+        int required;
         try {
-            return source.hasPermission(Integer.parseInt(mode.trim()));
+            required = Integer.parseInt(mode.trim());
         } catch (NumberFormatException e) {
-            return source.hasPermission(2);
+            // 规则只允许 false 或 0~4。出现别的值说明配置文件被手工改过，
+            // 这时按"关闭"处理（fail-closed）：静默放宽成 2 级可用会让权限形同虚设。
+            return false;
         }
+        if (required < 0) {
+            return false;   // 负数会让 hasPermission(-1) 恒为真，等于人人可用
+        }
+        return source.hasPermission(Math.min(required, 4));
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -159,15 +163,47 @@ public final class CofDebugCommand {
                             ServerLevel level = context.getSource().getLevel();
                             BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
 
-                            boolean froze = CauldronFreezing.checkColumn(level, pos);
+                            // 这条命令会真实改世界（抽干水、掉产物），所以总开关关闭时直接拒绝执行：
+                            // 否则容易让人误以为"功能开着却没生效"，其实锅已经被抽干了。
+                            if (!CofSettings.waterCauldronFreezing) {
+                                reply(context, header("tick", pos.toShortString())
+                                        .append(nl())
+                                        .append(row("未执行",
+                                                "总开关 waterCauldronFreezing 已关闭；"
+                                                        + "要手动步进请先 /carpet waterCauldronFreezing true",
+                                                BAD)));
+                                return 0;
+                            }
+
+                            // 先定位"实际会被处理的那口锅"，让累计值读的与真正动手的是同一口
+                            BlockPos target = CauldronFreezing.findCauldron(level, pos);
+                            CauldronFreezing.FreezeResult result = CauldronFreezing.checkColumn(level, pos);
+
+                            String verdict;
+                            Style verdictStyle;
+                            if (result == CauldronFreezing.FreezeResult.PRODUCED) {
+                                verdict = "结冰并产出产物";
+                                verdictStyle = OK;
+                            } else if (result == CauldronFreezing.FreezeResult.WARMED) {
+                                verdict = "条件满足，本次只累计（还没到产出次数）";
+                                verdictStyle = ARROW;
+                            } else {
+                                verdict = "没有结冰";
+                                verdictStyle = BAD;
+                            }
+
                             MutableComponent out = header("tick", pos.toShortString())
                                     .append(nl())
                                     .append(row("步进", "1 次结冰检查", SUB))
                                     .append(nl())
-                                    .append(row("累计", progressText(level, pos), VAL))
+                                    .append(row("目标",
+                                            target == null ? "该列没有水炼药锅" : target.toShortString(),
+                                            target == null ? BAD : VAL))
                                     .append(nl())
-                                    .append(row("本次检查", froze ? "结冰了" : "没有结冰",
-                                            mark(froze)));
+                                    .append(row("累计",
+                                            target == null ? "无记录" : progressText(level, target), VAL))
+                                    .append(nl())
+                                    .append(row("本次检查", verdict, verdictStyle));
                             reply(context, out);
                             return 1;
                         })));
@@ -202,12 +238,29 @@ public final class CofDebugCommand {
                                     ServerLevel level = context.getSource().getLevel();
                                     BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
                                     int value = IntegerArgumentType.getInteger(context, "value");
-                                    CauldronFreezeData.get(level).set(pos, value);
-                                    int now = CauldronFreezeData.get(level).get(pos);
+
+                                    if (value == 0) {
+                                        // 清除走"只读不创建"：否则在一个从没预热过的世界里敲一条
+                                        // "清空一条并不存在的记录"，也会把数据文件建出来。
+                                        CauldronFreezeData data = CauldronFreezeData.getIfPresent(level);
+                                        boolean had = data != null && data.get(pos) != 0;
+                                        if (had) {
+                                            data.set(pos, 0);
+                                        }
+                                        reply(context, header("data", pos.toShortString())
+                                                .append(nl())
+                                                .append(row("写入结果", had
+                                                        ? "已清空该位置的记录"
+                                                        : "该位置本来就没有记录", VAL)));
+                                        return 1;
+                                    }
+
+                                    // 只取一次，避免重复 computeIfAbsent
+                                    CauldronFreezeData data = CauldronFreezeData.get(level);
+                                    data.set(pos, value);
                                     reply(context, header("data", pos.toShortString())
                                             .append(nl())
-                                            .append(row("写入结果", "现在累计 " + now + " 次"
-                                                    + (now == 0 ? "（已清空该位置的记录）" : ""), VAL)));
+                                            .append(row("写入结果", "现在累计 " + data.get(pos) + " 次", VAL)));
                                     return 1;
                                 }))));
 
@@ -274,6 +327,17 @@ public final class CofDebugCommand {
             return 0;
         }
 
+        // 创造模式下 ItemUtils.createFilledResult 走"无限材料"分支：它会把结果物品塞进玩家背包，
+        // 数字也不代表生存语义。所以直接跳过——连模拟都不做，杜绝给玩家物品。
+        if (player.isCreative()) {
+            reply(context, header("bucketcheck", "")
+                    .append(nl())
+                    .append(row("跳过", player.getGameProfile().getName()
+                            + " 处于创造模式：原版本就不消耗水桶，该方法还会把测试物品放进背包，"
+                            + "无法验证规则；请用生存模式玩家测试", BAD)));
+            return 0;
+        }
+
         // 放水是两步链，必须整条模拟才反映真实结果
         ItemStack placementHeld = new ItemStack(Items.WATER_BUCKET);
         ItemStack placement = ItemUtils.createFilledResult(placementHeld, player,
@@ -292,28 +356,22 @@ public final class CofDebugCommand {
         boolean cauldronOk = describe(cauldron).equals(expected);
 
                     // 创造模式下原版走"无限材料"分支（getEmptySuccessItem 直接返回输入堆），
-                    // 结果不代表生存，所以这时不标 ✓/✗，只提示原因
-                    boolean creative = player.isCreative();
-                    MutableComponent out = header("bucketcheck", "")
-                            .append(nl())
-                            .append(row("执行者", player.getGameProfile().getName()
-                                    + (creative ? "（创造模式：走无限材料分支，下面的数字不代表生存结果）" : ""),
-                                    creative ? SUB : VAL))
-                            .append(nl())
-                            .append(row("规则", "waterBucketNotConsumed = " + rule, VAL))
-                            .append(nl())
-                            .append(row("期望", expected + "（按当前规则）", SUB))
-                            .append(nl())
-                            .append(row("放水", describe(placement),
-                                    creative ? SUB : mark(placementOk)))
-                            .append(nl())
-                            .append(row("倒进锅", describe(cauldron),
-                                    creative ? SUB : mark(cauldronOk)))
-                            .append(nl())
-                            .append(row("对照·岩浆桶", describe(lava), SUB))
-                            .append(nl())
-                            .append(row("对照·空桶装水", describe(fillUp), SUB));
-                    reply(context, out);
+        MutableComponent out = header("bucketcheck", "")
+                .append(nl())
+                .append(row("执行者", player.getGameProfile().getName(), VAL))
+                .append(nl())
+                .append(row("规则", "waterBucketNotConsumed = " + rule, VAL))
+                .append(nl())
+                .append(row("期望", expected + "（按当前规则）", SUB))
+                .append(nl())
+                .append(row("放水", describe(placement), mark(placementOk)))
+                .append(nl())
+                .append(row("倒进锅", describe(cauldron), mark(cauldronOk)))
+                .append(nl())
+                .append(row("对照·岩浆桶", describe(lava), SUB))
+                .append(nl())
+                .append(row("对照·空桶装水", describe(fillUp), SUB));
+        reply(context, out);
         return 1;
     }
 
@@ -342,11 +400,16 @@ public final class CofDebugCommand {
         if (isCauldron(level.getBlockState(anyPosInColumn))) {
             target = anyPosInColumn;
         } else {
-            for (int dy = 0; dy >= -4; dy--) {
-                BlockPos probe = surface.offset(0, dy, 0);
-                if (isCauldron(level.getBlockState(probe))) {
-                    target = probe;
-                    break;
+            // 优先用"实际会被处理的那口锅"（地表 / 地表下一格），保证报告的目标与结冰逻辑一致；
+            // 找不到再往下探 4 格，把"被方块整个盖住"的情况也报出来。
+            target = CauldronFreezing.findCauldron(level, anyPosInColumn);
+            if (target == null) {
+                for (int dy = 0; dy >= -4; dy--) {
+                    BlockPos probe = surface.offset(0, dy, 0);
+                    if (isCauldron(level.getBlockState(probe))) {
+                        target = probe;
+                        break;
+                    }
                 }
             }
             if (target == null) {
