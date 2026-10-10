@@ -135,4 +135,4 @@ This is how the mod was tested; a few hard-won lessons:
 2. `gradle clean build -PnoFabricRepo`
 3. Commit, push, and tag `v<version>` (matching `mod_version`)
 4. Attach `dist/Carpet CoF Addition-<version>.jar` to a GitHub release (optionally the `-sources.jar` too)
-5. Write the release notes using the `✨ New / 🐛 Fixes` sections from `CHANGELOG.md`
+5. Write the release notes using the sections from `CHANGELOG.md` (新内容 / 修复 / 设计与实现); **do not use emoji**

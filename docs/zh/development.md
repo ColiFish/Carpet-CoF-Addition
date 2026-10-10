@@ -135,4 +135,4 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 2. `gradle clean build -PnoFabricRepo`
 3. commit + push，打 tag `v<版本>`（与 `mod_version` 一致）
 4. GitHub Releases 上传 `dist/Carpet CoF Addition-<版本>.jar`（可选：一并传 `-sources.jar`）
-5. 发布说明按 `CHANGELOG.md` 的「✨ 新内容 / 🐛 修复」分节抄
+5. 发布说明按 `CHANGELOG.md` 的分节（新内容 / 修复 / 设计与实现）抄写；**不要使用表情符号**
