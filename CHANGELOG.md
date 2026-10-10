@@ -18,10 +18,11 @@
 - **炼药锅结冰速率**（`cauldronFreezingChance`，默认 `48`，与原版同节奏；取值不受限）
 - **水桶不消耗**（`waterBucketNotConsumed`，默认关）：放水与倒进炼药锅都不消耗水桶
 - **水瓶不消耗**（`waterBottleNotConsumed`，默认关）：用水瓶给炼药锅灌水不消耗水瓶，也不产生空玻璃瓶（喝药水路径刻意不受影响）
+- **CoF调试工具**（`cofDebugCommand`，默认 `2`）：是否启用 `/cofdebug` 诊断命令，`0`~`4` 为要求的最低权限等级（改完立刻生效）
 
 **命令**
 
-- **CoF调试工具**（`cofDebugCommand`，默认权限等级 2）：`/cofdebug tick | data | use | bucketcheck`
+- `/cofdebug`：`tick <坐标>` 手动步进一次结冰检查 · `data <坐标>` 只读复述全部条件与进度 · `data <坐标> <值>` 改写累计次数 · `use <坐标> [玩家]` 对目标方块真实右键一次并播报前后变化 · `bucketcheck [玩家]` 调用原版判定验证水桶规则
 
 **文档**
 
