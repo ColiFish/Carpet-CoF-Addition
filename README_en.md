@@ -15,11 +15,10 @@
 
 1. **Server**: install the [Fabric server](https://fabricmc.net/use/server/), then drop both **Carpet** and this mod into the server's `mods/` folder
 2. **Single-player / LAN**: the client needs Fabric + Carpet + this mod too — Carpet is declared as a hard dependency, so a client without it fails to start
-3. Download only `Carpet-CoF-Addition-<version>.jar`, **not** the `-sources.jar` (it is just the source bundle and would fail to load from `mods/`)
 
 ## Download
 
-Download this mod from [Releases](../../releases): grab `Carpet-CoF-Addition-<version>.jar` (**not** the `-sources.jar`, which is only the source bundle and would fail to load if dropped into `mods/`).
+Download this mod from [Releases](../../releases).
 
 You only need to install Java 21 yourself for a **self-hosted server** or when launching with a manually specified Java: the official launcher ships its own runtime, and launchers such as HMCL / PCL can download one automatically.
 
@@ -57,7 +56,6 @@ Creative mode never consumes items, so those two switches make no visible differ
 **What does it leave in my world?**
 
 One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it only stores positions that are **currently warming up** — producing, breaking or emptying a cauldron clears the record immediately. A world that never warmed up a cauldron never gets the file at all.
-
 
 
 ## Warning

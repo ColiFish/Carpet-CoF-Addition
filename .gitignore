@@ -19,3 +19,6 @@ libs/*.jar
 local-maven/
 # Fabric Loader 在开发环境写出的日志
 fabricloader.log
+
+# 开发记录：只在本地留存，不发布到 GitHub
+docs/zh/dev-notes.md

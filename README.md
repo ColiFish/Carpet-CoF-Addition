@@ -15,11 +15,10 @@
 
 1. **服务端**：先装 [Fabric 服务端](https://fabricmc.net/use/server/)，再把 **Carpet** 与本模组的 jar 一起放进服务端的 `mods/` 目录
 2. **单人 / 局域网**：客户端也要装 Fabric + Carpet + 本模组——本模组把 Carpet 声明为硬依赖，客户端缺它会直接启动失败
-3. 只下载 `Carpet-CoF-Addition-<版本>.jar`，**不要**下载 `-sources.jar`（那只是源码包，放进 `mods/` 会被当成模组而启动失败）
 
 ## 下载
 
-本模组从 [Releases](../../releases) 下载：请下 `Carpet-CoF-Addition-<版本>.jar`（**不要**下 `-sources.jar`，那只是源码包，放进 `mods/` 会被当成模组而启动失败）。
+本模组从 [Releases](../../releases) 下载。
 
 Java 21 只有**自建服务端**或**手动指定 Java 启动**时才需要自己装：官方启动器会自带运行时，HMCL / PCL 这类启动器也能自动下载。
 
@@ -57,7 +56,6 @@ Carpet 系模组的惯例：所有功能显式开启，避免影响既有的存�
 **存档里会留下什么？**
 
 一个数据文件 `world/data/cof_cauldron_freezes.dat`（每个维度一份），而且**只记录"正在预热中"的位置** —— 产出、挖掉、取水都会立刻清除记录。从没预热过任何锅的世界不会产生这个文件。
-
 
 
 ## 警告
