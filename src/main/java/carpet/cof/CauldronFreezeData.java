@@ -130,7 +130,10 @@ public class CauldronFreezeData extends SavedData {
             int[] values = tag.getIntArray(KEY_COUNT);
             int size = Math.min(positions.length, values.length);
             for (int i = 0; i < size; i++) {
-                data.counts.put(positions[i], values[i]);
+                int value = values[i];
+                if (value > 0) {   // 非正数视为无记录：损坏或手改过的文件不该把进度变成"倒扣"
+                    data.counts.put(positions[i], value);
+                }
             }
             return data;
         }
@@ -139,7 +142,10 @@ public class CauldronFreezeData extends SavedData {
         ListTag list = tag.getList(KEY_ENTRIES, Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundTag one = list.getCompound(i);
-            data.counts.put(one.getLong(KEY_POS), one.getInt(KEY_COUNT));
+            int legacyValue = one.getInt(KEY_COUNT);
+            if (legacyValue > 0) {
+                data.counts.put(one.getLong(KEY_POS), legacyValue);
+            }
         }
         return data;
     }
