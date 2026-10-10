@@ -5,7 +5,7 @@
 
   "name": "${mod_name}",
   "description": "水炼药锅在可降雪群系露天结冰并掉落产物（冰块/浮冰/蓝冰），另含水桶、水瓶不消耗开关。A Carpet add-on: water cauldrons freeze in snow biomes and drop products.",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
 
   "environment": "*",
   "entrypoints": {

@@ -45,4 +45,4 @@ One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it
 
 ## License
 
-[MIT](LICENSE)
+Released under [GPL-3.0](LICENSE) (GPL-3.0-only). Copyright (c) 2026 CoF contributors.

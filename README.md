@@ -45,4 +45,4 @@ Carpet 系模组的惯例：所有功能显式开启，避免影响既有的存�
 
 ## 许可
 
-[MIT](LICENSE)
+本项目以 [GPL-3.0](LICENSE)（GPL-3.0-only）发布。Copyright (c) 2026 CoF contributors。
