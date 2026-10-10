@@ -31,7 +31,7 @@ jobs:
           JAR=$(sed -n 's/^carpet_jar=//p' gradle.properties)
           echo "minecraft=$MC  carpet_jar=$JAR"
           mkdir -p libs
-          URL=$(curl -sS -H 'User-Agent: carpet-cof-addition-ci' \
+          URL=$(curl -sS -H 'User-Agent: Carpet-CoF-Addition-ci' \
             "https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D" \
             | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
           if [ -z "$URL" ]; then
@@ -58,6 +58,6 @@ jobs:
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
-          name: carpet-cof-addition
+          name: Carpet-CoF-Addition
           path: build/libs/*.jar
           if-no-files-found: error

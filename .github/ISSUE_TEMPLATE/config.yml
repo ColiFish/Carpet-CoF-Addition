@@ -2,11 +2,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 规则文档
-    url: https://github.com/ColiFish/carpet-cof-addition/blob/main/docs/zh/rules.md
+    url: https://github.com/ColiFish/Carpet-CoF-Addition/blob/main/docs/zh/rules.md
     about: 每条规则的默认值、生效条件、示例与注意事项
   - name: 命令文档
-    url: https://github.com/ColiFish/carpet-cof-addition/blob/main/docs/zh/commands.md
+    url: https://github.com/ColiFish/Carpet-CoF-Addition/blob/main/docs/zh/commands.md
     about: /cofdebug 的语法、参数与输出说明
   - name: 常见问题
-    url: https://github.com/ColiFish/carpet-cof-addition#常见问题
+    url: https://github.com/ColiFish/Carpet-CoF-Addition#常见问题
     about: README 里的六条高频疑问（默认关闭、需要玩家在附近、雪线等）
