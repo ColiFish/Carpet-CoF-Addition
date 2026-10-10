@@ -84,8 +84,7 @@ jobs:
           NAME=$(sed -n 's/^archives_base_name=//p' gradle.properties)
           VER=$(sed -n 's/^mod_version=//p' gradle.properties)
           test -f "build/libs/${NAME}-${VER}.jar"
-          test -f "build/libs/${NAME}-${VER}-sources.jar"
-          echo "产物齐全：${NAME}-${VER}.jar / -sources.jar"
+          echo "产物齐全：${NAME}-${VER}.jar（源码包仍在 build/libs，但不随 Release 分发）"
 
       - name: 整理产物（文件名里的空格换成连字符，下载链接更好看）
         run: |
@@ -94,7 +93,6 @@ jobs:
           VER=$(sed -n 's/^mod_version=//p' gradle.properties)
           mkdir -p out
           cp "build/libs/${NAME}-${VER}.jar"           "out/Carpet-CoF-Addition-${VER}.jar"
-          cp "build/libs/${NAME}-${VER}-sources.jar"   "out/Carpet-CoF-Addition-${VER}-sources.jar"
           ls -l out
 
       - name: 创建或更新 Release
