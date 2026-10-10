@@ -55,12 +55,19 @@ jobs:
           cp "build/libs/${NAME}-${VER}-sources.jar"   "out/Carpet-CoF-Addition-${VER}-sources.jar"
           ls -l out
 
-      - name: 创建 Release
+      - name: 创建或更新 Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "${GITHUB_REF_NAME}" out/*.jar \
-            --title "${GITHUB_REF_NAME#v}" \
-            --generate-notes \
-            --verify-tag
+          # 若该 tag 的 Release 已存在（例如手工发过），只覆盖上传附件，保留原有说明；
+          # 否则新建一个。这样无论谁先动手，工作流都不会因 already_exists 失败。
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} 已存在，覆盖上传附件"
+            gh release upload "${GITHUB_REF_NAME}" out/*.jar --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" out/*.jar \
+              --title "${GITHUB_REF_NAME#v}" \
+              --generate-notes \
+              --verify-tag
+          fi
