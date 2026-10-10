@@ -9,7 +9,7 @@
 | Minecraft | **1.21.4** | — |
 | Fabric Loader | **≥ 0.16.9** | <https://fabricmc.net/use/installer/> |
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203**（MC 1.21.4 版） | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
-| Java | **21** | [Temurin 21（Windows x64 JDK）](https://adoptium.net/temurin/releases/?version=21&os=windows&arch=x64&package=jdk) · [Microsoft OpenJDK 21](https://learn.microsoft.com/java/openjdk/download) |
+| Java | **21** | [Oracle 官方下载（Java 21）](https://www.oracle.com/java/technologies/downloads/#java21) |
 
 本模组从 [Releases](../../releases) 下载，或参照[开发文档](docs/zh/development.md)自行构建。
 
