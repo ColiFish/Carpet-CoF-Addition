@@ -17,3 +17,5 @@ libs/*.jar
 
 # ---------- 国内网络专用：本地 Maven 镜像（约 18 MB，由 mirror-fabric-deps.ps1 生成） ----------
 local-maven/
+# Fabric Loader 在开发环境写出的日志
+fabricloader.log

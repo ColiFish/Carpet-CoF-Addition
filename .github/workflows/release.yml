@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 要发布或更新的 tag（例如 v1.0.1）
+        description: 要发布或更新的 tag（与 gradle.properties 的 mod_version 一致，例如 v1.0.2）
         required: true
         type: string
 

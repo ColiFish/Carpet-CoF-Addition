@@ -34,6 +34,8 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 * `-PnoFabricRepo` 只是禁用官方 Fabric 仓库兜底，正常构建都可以带上
 * 产物固定为**单个 jar**：`build/libs/Carpet-CoF-Addition-<版本>.jar`，诊断命令始终包含在内（用规则 `cofDebugCommand` 开关）
 * 另外会产出一份 `-sources.jar`（源码归档，随 Release 分发用，不能装进游戏）
+
+> 源码包（`-sources.jar`）由构建脚本排除了 `fabric.mod.json` 与 `cof.mixins.json`，所以它**不会被 Fabric Loader 当成模组**；即便如此，面向用户的下载说明仍应只指向主 jar。
 * `build.gradle` 顶部注释记录了与国内网络相关的几处处理（本地 Maven 镜像、超时与重试）
 
 ## 项目结构
@@ -113,6 +115,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 * **零注册项**：不新增方块、物品、配方、贴图。所有功能都是对原版行为的可开关改动，卸载后存档里不会留下未定义方块
 * **结冰挂在 `ServerLevel#tickChunk`**：完整复刻原版循环（`randomTickSpeed` 次迭代 × `nextInt(48) == 0`），所以节奏与原版降水结冰完全一致
 * **进度用 `SavedData`**：按维度存放（`world/data/cof_cauldron_freezes.dat`），存成 `long[]` 坐标 + `int[]` 计数。只有"预热进行中"的位置才有记录，产出即删除，因此数据量天然极小
+* **只处理主世界**：`tickChunk` 与 `checkColumn` 都在最前面判 `level.dimension() == Level.OVERWORLD`，其余维度直接返回，不判定也不产生存档数据。
 * **只读路径不创建文件**：`getIfPresent` 用于所有查询与清理，`get` 才会创建。所以从没预热过的世界不会产生数据文件
 * **水瓶那条为何挂 HEAD 并取消原方法**：原版是"先消耗水瓶 → 再把手上的东西换成空玻璃瓶 → 再改方块"，等到方法返回时传入的物品**已经变成空气**，事后无法还原，也无从判断它原本是不是水瓶
 * **水瓶那条为何不拦 `ItemUtils#createFilledResult`**：喝药水走同一个方法并返回空玻璃瓶，在那里拦会变成凭空刷水瓶
@@ -128,6 +131,15 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 | 水瓶规则挂了却没生效 | 漏了"空炼药锅"这一种情况：原版会用水瓶把空锅灌成 1 级水锅 |
 | 开发世界里 `setblock` 频繁报 `Could not set the block` | 区块没加载（假人掉了/没 forceload），不是命令写错 |
 | 想当然地拦 `createFilledResult` 实现"喝水瓶不消耗" | 喝药水也走这个方法，会变成刷水瓶漏洞 |
+
+## 已知限制（有意保留，不修）
+
+* **记录没有"规则指纹"**：存档里只存 `坐标 → 次数`。中途切换 `cauldronFreezingProduct` 或
+  `cauldronFreezingRequiresFullWater` 时，已经攒下的次数会按新规则继续计入阈值（例如"任意水位"下攒的 1 次，
+  切回"需要满水"后仍算 1 次）。阈值 = 1 的 `ice` 分支会顺手清掉这类记录，所以只有 2/3 阈值之间切换会看到。
+* **被完全盖住的锅不会被清理**：检测只探"高度图那一格 + 它下面一格"，锅若不在其中，它的记录会一直留着，
+  等方块被拆掉、锅重新进入探测范围时"复活"计入阈值。数量上界是"每口锅一条"，不会无限增长。
+* **掉落物可能被原版接管**：冻结后锅变空锅，在降雪天气里原版有可能把空锅填成细雪锅（原版机制，本模组不干预）。*这条尚未在本项目内实测确认* —— 需要确认时请用"降雪天气 + 空锅放置数十秒"实测。
 
 ## 发布
 

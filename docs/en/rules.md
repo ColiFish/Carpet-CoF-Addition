@@ -2,7 +2,7 @@
 
 [中文](../zh/rules.md) | **English**
 
-This mod ships **7 rules**, all off by default, toggled with Carpet's own commands — no second command set to remember.
+This mod ships **7 rules**. The feature switches (freezing, water buckets, water bottles) are off by default, so installing it changes nothing; the parameter rules (product, full-water requirement, rate) have their own defaults; and the debug command `cofDebugCommand` defaults to `2` (usable by OPs). Everything is toggled with Carpet's own commands — no second command set to remember.
 
 ```
 /carpet <rule> <value>             # temporary (reverts on restart)
@@ -32,6 +32,8 @@ A rule can belong to the mod's own category and to Carpet's sub-categories at th
 
 ## waterCauldronFreezing — master switch
 
+**Overworld only**: the Nether, the End and custom dimensions are never handled (water there has no vanilla precipitation semantics).
+
 | | |
 | --- | --- |
 | Default | `false` |
@@ -59,7 +61,7 @@ for (int i = 0; i < randomTickSpeed; i++)     // 3 by default
         // freeze check
 ```
 
-So each column is checked with probability 1/(randomTickSpeed × 48) per tick — about once every **205 seconds** with defaults. With `randomTickSpeed = 0` nothing is checked, exactly like vanilla.
+So each column is checked with probability randomTickSpeed × (1/256) × (1/48) = 3/12288 = **1/4096** per tick — about once every **205 seconds** with defaults. With `randomTickSpeed = 0` nothing is checked, exactly like vanilla.
 
 **A player or a Carpet fake player must be within simulation distance**: loading a chunk with `forceload` alone never runs `tickChunk`.
 
@@ -85,6 +87,8 @@ So each column is checked with probability 1/(randomTickSpeed × 48) per tick �
 | Default | `ice` |
 | Accepted values | `ice` / `packed_ice` / `blue_ice` |
 | Categories | `CoF` `feature` |
+
+**Note**: warm-up progress stores only a count, not which rules produced it — switching the product tier (`packed_ice` ↔ `blue_ice`) or the full-water requirement mid-way keeps applying existing counts under the new rules. A cauldron fully covered by blocks is not checked at all, so its progress is kept until it becomes reachable again.
 
 **In-game description:** what a water cauldron produces, and how many freeze events are needed per item: ice = every time, packed_ice = 1 per 2, blue_ice = 1 per 3. The counter resets after every drop.
 

@@ -56,7 +56,7 @@ Runs one freeze check, as if the random tick had picked this column.
 
 * `目标` (target) is the cauldron that is actually handled: the column's surface block or the one below it; red when the column has no water cauldron
 * `累计` is "current warm-up progress / threshold for the current product" (`0 / 1` forever for `ice`)
-* `本次检查` has three outcomes: `没有结冰` (red), `条件满足，本次只累计（还没到产出次数）` (aqua), `结冰并产出产物` (green)
+* `本次检查` has three outcomes: `没有结冰` (red), `条件满足，本次只累计` (aqua), `结冰并产出产物` (green)
 * **While the master switch `waterCauldronFreezing` is off this command refuses to run** (prints `未执行` and the reason, and changes nothing)
 
 To test **deterministically** (ignoring chance), suppress the chance gate and step manually:
@@ -97,6 +97,7 @@ Prints **every condition** at that position, so you can see at a glance which on
 | --- | --- |
 | `规则` rules | Current values of the four related rules (red = master switch is off) |
 | `位置` position | The cauldron actually being reported. **May differ from the position you typed**: it prefers the cauldron the freeze logic would really handle (the column's surface block or the one below it), and only then searches up to 4 blocks further down (for cauldrons fully covered by blocks) |
+| `维度` dimension | The dimension. **Only the Overworld freezes** — a red value here means the freeze logic will not touch this position |
 | `方块` block | Block id at that position (red = not a water cauldron) |
 | `水位` water level | **Only printed when the block is a water cauldron** (red = does not satisfy the full-water requirement, or any-level mode is active) |
 | `水位条件` level rule | Whether the mod currently requires a full cauldron (`需要满水`) or accepts any level (`任意水位`) |

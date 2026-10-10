@@ -1,3 +1,5 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 // ============================================================================
 //  CoF —— 构建脚本
 //
@@ -96,11 +98,14 @@ dependencies {
 // 现在不注册任何方块/物品、也没有 assets/data 资源，只剩 Carpet 与 Loader 两个依赖。
 // 语言文件是 Carpet 的 Translations 直接从 classpath 读的，与 Fabric API 无关。
 
+// 注意：processResources 用的 Groovy expand() 对 $ 与 \ 敏感 ——
+// fabric.mod.json 模板里若出现单独的 $（例如描述文案里写价格），要么转义成 \$，
+// 要么改成 filesMatching + filter(ReplaceTokens) 之类的安全替换。
 processResources {
     inputs.property "version", project.version
-    inputs.property "mod_name", project.archives_base_name
+    inputs.property "mod_name", project.mod_display_name
     filesMatching("fabric.mod.json") {
-        expand "version": project.version, "mod_name": project.archives_base_name
+        filter(ReplaceTokens, tokens: [version: project.version.toString(), mod_name: project.mod_display_name])
     }
 }
 
@@ -126,6 +131,12 @@ jar {
 
 // 源码归档同样附上许可证：MIT 要求分发副本携带版权与许可声明
 tasks.matching { it.name == 'sourcesJar' }.configureEach {
+    // sources jar 只该装源码。若不排除，它会带着**未经 processResources 展开**的
+    // fabric.mod.json（version 还是 ${version}）与 cof.mixins.json 被打出来，
+    // Fabric Loader 会把它当成第二个 cof 模组：玩家误丢进 mods/ 会因入口类/mixin 类
+    // 缺失而启动失败，和主 jar 同放还会撞 mod id。
+    exclude 'fabric.mod.json'
+    exclude 'cof.mixins.json'
     from("LICENSE") {
         rename { "${it}_cof" }
     }
