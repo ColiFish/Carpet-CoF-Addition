@@ -52,7 +52,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
  *   <li><b>该位置方块光 &lt; 10</b>（与原版水结冰一致，看的是方块光，所以白天不阻碍）</li>
  * </ol>
  *
- * <h2>检测频率：与原版降水循环逐位一致</h2>
+ * <h2>检测频率：与原版降水循环同结构、同概率门</h2>
  *
  * <pre>
  * for (int i = 0; i &lt; randomTickSpeed; i++) {          // 默认 3 次，不是 16
@@ -63,13 +63,24 @@ import net.minecraft.world.level.levelgen.Heightmap;
  * </pre>
  *
  * <p>也就是某列每 tick 被检测到的概率是 1/4096（期望约 205 秒轮到一次）。
- * 本类复刻同一个循环与概率门（{@code cauldronFreezingChance} 就是那个分母），
- * 唯一区别是去掉外面 {@code if (isRaining())} 那层。</p>
+ * 本类复刻同一个循环结构与 1/48 概率门（{@code cauldronFreezingChance} 就是那个分母），
+ * 与那段代码有两处刻意的差别：去掉外面 {@code if (isRaining())} 那层（这是需求），
+ * 以及取坐标时只抽 x、z 两个随机数（y 对本模组无意义，原版会连 y 一起抽）。</p>
  *
  * <p><b>曾经的错误（已修）</b>：早先写成"每区块 tick 抽查 4 列"（= 1/64，比原版快 64 倍），
  * 那就是"结冰速率明显异常"的原因。</p>
  */
 public final class CauldronFreezing {
+
+    /** 一次结冰检查的结果。区分"仅累计"与"真产出"，诊断命令需要如实汇报。 */
+    public enum FreezeResult {
+        /** 条件不满足，或该位置已经不是水炼药锅。 */
+        NONE,
+        /** 条件满足，但当前产物需要预热，这一次只是累计，没有产出。 */
+        WARMED,
+        /** 条件满足并真的产出了产物（锅被清空 + 掉出产物）。 */
+        PRODUCED
+    }
 
     private CauldronFreezing() {
     }
@@ -104,19 +115,38 @@ public final class CauldronFreezing {
     }
 
     /**
+     * 这一列上"真正会被处理的那口锅"：先看地表那一格，再看它下面一格；都不是水炼药锅就返回 {@code null}。
+     *
+     * <p>炼药锅是空心形状，会不会被算进 {@code MOTION_BLOCKING} 取决于碰撞盒，所以这两格都要看。
+     * 诊断命令用它与实际处理目标保持一致（不必自己再猜一遍）。</p>
+     */
+    public static BlockPos findCauldron(ServerLevel level, BlockPos anyPosInColumn) {
+        BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, anyPosInColumn);
+        if (level.getBlockState(surface).is(Blocks.WATER_CAULDRON)) {
+            return surface;
+        }
+        BlockPos below = surface.below();
+        if (level.getBlockState(below).is(Blocks.WATER_CAULDRON)) {
+            return below;
+        }
+        return null;
+    }
+
+    /**
      * 检查"这一列顶部的炼药锅"能不能结冰。传入该列任意一个坐标即可。
      *
-     * @return 这一列是否真的满足并处理了结冰（诊断命令用它来汇报结果）
+     * @return 这一列实际发生了什么（诊断命令用它如实汇报"仅累计"还是"真产出"）
      */
-    public static boolean checkColumn(ServerLevel level, BlockPos anyPosInColumn) {
+    public static FreezeResult checkColumn(ServerLevel level, BlockPos anyPosInColumn) {
         // 和原版一样：把任意高度换算成这一列的地表位置
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, anyPosInColumn);
 
-        // 炼药锅是空心形状，会不会被算进 MOTION_BLOCKING 取决于碰撞盒，
-        // 所以地表那一格和它下面那一格都检查一遍，两种情况都能覆盖。
-        boolean atSurface = tryFreeze(level, surface);
-        boolean belowSurface = tryFreeze(level, surface.below());
-        return atSurface || belowSurface;
+        // 地表那一格和它下面那一格都试一遍，两种情况都能覆盖
+        FreezeResult atSurface = tryFreeze(level, surface);
+        if (atSurface != FreezeResult.NONE) {
+            return atSurface;
+        }
+        return tryFreeze(level, surface.below());
     }
 
     /**
@@ -145,24 +175,24 @@ public final class CauldronFreezing {
         return Items.ICE;
     }
 
-    private static boolean tryFreeze(ServerLevel level, BlockPos pos) {
+    private static FreezeResult tryFreeze(ServerLevel level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         if (!state.is(Blocks.WATER_CAULDRON)) {
             // 只要这个位置不是"水炼药锅"，预热进度就作废：被挖掉、被舀走、换成岩浆锅/细雪锅/
             // 空锅、被其它方块替换……全都算中断。
             // 用 clearIfPresent：清理这个动作不该把一个空的数据文件"创建"出来。
             CauldronFreezeData.clearIfPresent(level, pos);
-            return false;
+            return FreezeResult.NONE;
         }
         if (CofSettings.cauldronFreezingRequiresFullWater
                 && state.getValue(LayeredCauldronBlock.LEVEL) != LayeredCauldronBlock.MAX_FILL_LEVEL) {
             // 当前规则下这口锅冻不了，预热进度也就没有意义 → 一并作废
             //（满水规则关掉时不会走到这里——任意水位都还能继续累计）
             CauldronFreezeData.clearIfPresent(level, pos);
-            return false;
+            return FreezeResult.NONE;
         }
         if (!canFreezeHere(level, pos)) {
-            return false;
+            return FreezeResult.NONE;
         }
 
         String mode = CofSettings.cauldronFreezingProduct;
@@ -175,7 +205,7 @@ public final class CauldronFreezing {
             int count = data.get(pos) + 1;
             if (count < threshold) {
                 data.set(pos, count);   // 只记进度，不产出（水保持不动）
-                return true;
+                return FreezeResult.WARMED;
             }
             data.set(pos, 0);           // 产出即清零（set(0) 会直接删掉这个位置的记录）
         }
@@ -183,7 +213,7 @@ public final class CauldronFreezing {
         // 达产：锅清空 + 锅中心掉出该产物
         level.setBlockAndUpdate(pos, Blocks.CAULDRON.defaultBlockState());
         dropItem(level, pos, product(mode));
-        return true;
+        return FreezeResult.PRODUCED;
     }
 
     /**
