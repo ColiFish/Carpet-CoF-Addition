@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CofMod implements ModInitializer {
     public static final String MOD_ID = "cof";
-    public static final String MOD_NAME = "Carpet CoF Addition";
+    public static final String MOD_NAME = "Carpet-CoF-Addition";
 
     public static final String MOD_VERSION = FabricLoader.getInstance()
             .getModContainer(MOD_ID)

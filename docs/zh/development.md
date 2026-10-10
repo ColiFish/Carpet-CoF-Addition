@@ -32,7 +32,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 ```
 
 * `-PnoFabricRepo` 只是禁用官方 Fabric 仓库兜底，正常构建都可以带上
-* 产物固定为**单个 jar**：`build/libs/Carpet CoF Addition-<版本>.jar`，诊断命令始终包含在内（用规则 `cofDebugCommand` 开关）
+* 产物固定为**单个 jar**：`build/libs/Carpet-CoF-Addition-<版本>.jar`，诊断命令始终包含在内（用规则 `cofDebugCommand` 开关）
 * 另外会产出一份 `-sources.jar`（源码归档，随 Release 分发用，不能装进游戏）
 * `build.gradle` 顶部注释记录了与国内网络相关的几处处理（本地 Maven 镜像、超时与重试）
 
@@ -134,7 +134,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 1. `gradle.properties` 提 `mod_version`
 2. `gradle clean build -PnoFabricRepo`
 3. commit + push，打 tag `v<版本>`（与 `mod_version` 一致）
-4. GitHub Releases 上传 `dist/Carpet CoF Addition-<版本>.jar`（可选：一并传 `-sources.jar`）
+4. GitHub Releases 上传 `dist/Carpet-CoF-Addition-<版本>.jar`（可选：一并传 `-sources.jar`）
 5. 发布说明按 `CHANGELOG.md` 的分节（新内容 / 修复 / 设计与实现）抄写；**不要使用表情符号**
 
 > 推送 `v*` 标签后，GitHub Actions 会自动构建并创建 Release（见 `.github/workflows/release.yml`），网页上只需把自动生成的说明改写成上面的分节内容；每次 push 与 PR 也会自动构建一次（`.github/workflows/build.yml`）。

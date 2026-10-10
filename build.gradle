@@ -46,7 +46,7 @@ buildscript {
 
 apply plugin: 'fabric-loom'
 
-// refmap 名字跟随归档名的话会变成 "Carpet CoF Addition-refmap.json"（含空格）。
+// refmap 名字跟随归档名的话会变成 "Carpet-CoF-Addition-refmap.json"（含空格）。
 // 资源名带空格虽然一般能用，但 mixin 一旦找不到 refmap 就会启动崩溃，所以这里固定成干净的短名。
 loom {
     mixin {
@@ -60,7 +60,7 @@ group = project.maven_group
 
 // ---------------------------------------------------------------------------
 // 单一产物：
-//   gradle build   -> "Carpet CoF Addition-<版本>.jar"
+//   gradle build   -> "Carpet-CoF-Addition-<版本>.jar"
 // 只发一个 jar，调试命令 /cofdebug 始终包含在内。不再有"纯功能版 / 调试版"之分，
 // 因此也没有 -Pdebug 开关，更不需要为了"排除调试类"而用反射注册命令。
 // ---------------------------------------------------------------------------

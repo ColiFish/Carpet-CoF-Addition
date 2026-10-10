@@ -32,7 +32,7 @@ gradle clean build -PnoFabricRepo      # with Gradle 8.12 installed locally
 ```
 
 * `-PnoFabricRepo` only disables the official Fabric repository fallback; it is safe to always pass
-* The output is a **single jar**: `build/libs/Carpet CoF Addition-<version>.jar`, with the diagnostic command always included (toggle it with the `cofDebugCommand` rule)
+* The output is a **single jar**: `build/libs/Carpet-CoF-Addition-<version>.jar`, with the diagnostic command always included (toggle it with the `cofDebugCommand` rule)
 * A `-sources.jar` (source archive, shipped with releases, not installable) is produced as well
 * The header of `build.gradle` documents the China-network workarounds (local Maven mirror, timeouts, retries)
 
@@ -134,7 +134,7 @@ This is how the mod was tested; a few hard-won lessons:
 1. Bump `mod_version` in `gradle.properties`
 2. `gradle clean build -PnoFabricRepo`
 3. Commit, push, and tag `v<version>` (matching `mod_version`)
-4. Attach `dist/Carpet CoF Addition-<version>.jar` to a GitHub release (optionally the `-sources.jar` too)
+4. Attach `dist/Carpet-CoF-Addition-<version>.jar` to a GitHub release (optionally the `-sources.jar` too)
 5. Write the release notes using the sections from `CHANGELOG.md` (新内容 / 修复 / 设计与实现); **do not use emoji**
 
 > Pushing a `v*` tag makes GitHub Actions build and create the release automatically (see `.github/workflows/release.yml`); you only need to rewrite the auto-generated notes using the sections above. Every push and pull request also builds once (`.github/workflows/build.yml`).

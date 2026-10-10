@@ -1,4 +1,4 @@
-# Carpet CoF Addition
+# Carpet-CoF-Addition
 
 [中文](README.md) | **English**
 
