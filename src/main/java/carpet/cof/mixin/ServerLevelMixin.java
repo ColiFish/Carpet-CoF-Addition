@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 CoF contributors
+
 package carpet.cof.mixin;
 
 import carpet.cof.CauldronFreezing;
