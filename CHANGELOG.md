@@ -1,7 +1,5 @@
 # 更新日志
 
-本文件与 GitHub Release 说明一律**不使用表情符号**。
-
 本项目遵循「一版一 tag」：`gradle.properties` 里的 `mod_version` 与 git tag `vX.Y.Z` 对应，发行产物是 `dist/Carpet-CoF-Addition-<版本>.jar`。
 
 ## 1.0.0
