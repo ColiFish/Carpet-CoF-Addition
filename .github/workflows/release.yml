@@ -5,6 +5,12 @@ name: release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要发布或更新的 tag（例如 v1.0.0）
+        required: true
+        type: string
 
 permissions:
   contents: write   # 创建 Release 需要写权限
@@ -15,6 +21,8 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: 准备 JDK 21
         uses: actions/setup-java@v4
@@ -60,14 +68,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "目标 tag：$TAG"
           # 若该 tag 的 Release 已存在（例如手工发过），只覆盖上传附件，保留原有说明；
           # 否则新建一个。这样无论谁先动手，工作流都不会因 already_exists 失败。
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "Release ${GITHUB_REF_NAME} 已存在，覆盖上传附件"
-            gh release upload "${GITHUB_REF_NAME}" out/*.jar --clobber
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，覆盖上传附件"
+            gh release upload "$TAG" out/*.jar --clobber
           else
-            gh release create "${GITHUB_REF_NAME}" out/*.jar \
-              --title "${GITHUB_REF_NAME#v}" \
+            echo "Release $TAG 不存在，新建"
+            gh release create "$TAG" out/*.jar \
+              --title "${TAG#v}" \
               --generate-notes \
               --verify-tag
           fi
