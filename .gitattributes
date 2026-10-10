@@ -1,0 +1,10 @@
+# 统一换行符：仓库内一律 LF，避免 Windows 编辑器引入 CRLF 造成整文件 diff
+* text=auto eol=lf
+
+# Windows 批处理保持 CRLF
+*.bat text eol=crlf
+
+# 明确的二进制，禁止换行符转换
+*.jar binary
+*.png binary
+*.zip binary

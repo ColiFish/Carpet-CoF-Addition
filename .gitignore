@@ -1,0 +1,19 @@
+# ---------- 构建产物 / 本地环境（可再生，不进仓库） ----------
+.gradle/
+build/
+run/
+out/
+dist/
+
+# ---------- IDE ----------
+.idea/
+*.iml
+.vscode/
+
+# ---------- 第三方依赖 jar ----------
+# Carpet 本体请自行下载后放进 libs/，文件名必须与 gradle.properties 里的 carpet_jar 一致
+libs/*.jar
+!libs/.gitkeep
+
+# ---------- 国内网络专用：本地 Maven 镜像（约 18 MB，由 mirror-fabric-deps.ps1 生成） ----------
+local-maven/

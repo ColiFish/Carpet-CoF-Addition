@@ -1,0 +1,17 @@
+{
+  "carpet.category.CoF": "CoF",
+  "carpet.rule.cofDebugCommand": "CoF Debug Tool",
+  "carpet.rule.cofDebugCommand.desc": "Whether the /cofdebug diagnostic command is enabled; 0-4 = enabled and only usable by players whose permission level reaches that number",
+  "carpet.rule.waterCauldronFreezing": "Water Cauldron Freezing",
+  "carpet.rule.waterCauldronFreezing.desc": "Freezes a full water cauldron in a snow-capable biome when it is exposed to the sky and block light is below 10, dropping a product at the cauldron",
+  "carpet.rule.cauldronFreezingProduct": "Cauldron Freezing Product",
+  "carpet.rule.cauldronFreezingProduct.desc": "What a water cauldron produces and how many freeze events each item needs: ice = ice every time, packed_ice = one packed ice per 2, blue_ice = one blue ice per 3; the count resets after every item.",
+  "carpet.rule.waterBucketNotConsumed": "Water Bucket Not Consumed",
+  "carpet.rule.waterBucketNotConsumed.desc": "Using a water bucket in survival does not consume it",
+  "carpet.rule.waterBottleNotConsumed": "Water Bottle Not Consumed",
+  "carpet.rule.waterBottleNotConsumed.desc": "Using a water bottle to fill a cauldron in survival does not consume it",
+  "carpet.rule.cauldronFreezingChance": "Cauldron Freezing Rate",
+  "carpet.rule.cauldronFreezingChance.desc": "Freeze check frequency: 48 matches vanilla water freezing, smaller values freeze faster",
+  "carpet.rule.cauldronFreezingRequiresFullWater": "Cauldron Freezing Requires Full Water",
+  "carpet.rule.cauldronFreezingRequiresFullWater.desc": "When enabled only completely filled cauldrons freeze; disable to let water levels 1-3 freeze too"
+}

@@ -1,0 +1,448 @@
+package carpet.cof;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.AbstractCauldronBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * 诊断命令。
+ *
+ * <h2>输出规范</h2>
+ *
+ * <p>每条命令都是这个布局 —— 两格缩进 + 灰色标签（补齐对齐）+ 值：</p>
+ *
+ * <pre>
+ * [cof] /cofdebug tick  8, -59, 8     ← 金色标题：命令名 + 参数
+ *   步进     1 次结冰检查
+ *   累计     1 / 3
+ *   本次检查 结冰了
+ *
+ * [cof] /cofdebug data  8, -59, 8    ← 只读：该坐标处的完整条件都在这条命令里
+ *   规则     水锅结冰:true  满水要求:true  产物=blue_ice  结冰速率:48
+ *   位置     8, -59, 8（该列地表）
+ *   方块     minecraft:water_cauldron
+ *   水位     3
+ *   水位条件 需要满水
+ *   群系     minecraft:snowy_plains
+ *   降水     SNOW
+ *   露天     是
+ *   方块光   0
+ *   累计     1 / 3
+ *   产物     blue_ice（每 3 次产出 1 个）
+ *   下次结冰  仍不产出
+ * </pre>
+ *
+ * <p>没有勾叉符号：条件是否满足、对比是否一致，一律靠**颜色**表达
+ * （满足/一致 = 绿，不满足 = 红，次要信息 = 深灰）。</p>
+ *
+ * <p>结果统一用 {@code sendSuccess} 回给执行者（玩家或 RCON 控制台都能直接读到，
+ * 不依赖"有玩家在线"），同时以纯文本写进服务端日志。</p>
+ */
+public final class CofDebugCommand {
+    private CofDebugCommand() {
+    }
+
+    // ---------------------------------------------------------------- 样式
+
+    private static final Style HDR = Style.EMPTY.withColor(ChatFormatting.GOLD);
+    private static final Style CMD = Style.EMPTY.withColor(ChatFormatting.YELLOW);
+    private static final Style KEY = Style.EMPTY.withColor(ChatFormatting.GRAY);
+    private static final Style VAL = Style.EMPTY.withColor(ChatFormatting.WHITE);
+    private static final Style OK = Style.EMPTY.withColor(ChatFormatting.GREEN);
+    private static final Style BAD = Style.EMPTY.withColor(ChatFormatting.RED);
+    private static final Style SUB = Style.EMPTY.withColor(ChatFormatting.GRAY);
+    private static final Style ARROW = Style.EMPTY.withColor(ChatFormatting.AQUA);
+
+    private static MutableComponent nl() {
+        return Component.literal("\n");
+    }
+
+    /** 标题行：[cof] /cofdebug <子命令>  <参数> */
+    private static MutableComponent header(String sub, String arg) {
+        return Component.literal("[cof] ").withStyle(HDR)
+                .append(Component.literal("/cofdebug ").withStyle(CMD))
+                .append(Component.literal(sub).withStyle(CMD))
+                .append(arg.isEmpty() ? Component.empty() : Component.literal("  " + arg).withStyle(KEY));
+    }
+
+    /** 一行明细：两格缩进 + 灰色标签（补齐到 6 个全角位）+ 值。 */
+    private static MutableComponent row(String label, String value, Style valueStyle) {
+        return Component.literal("  ").append(Component.literal(pad(label)).withStyle(KEY))
+                .append(Component.literal(value).withStyle(valueStyle));
+    }
+
+    /** 全角字符按 2 格算，把标签补齐到 8 格，再统一加一格分隔 —— 保证标签与值不会粘在一起。 */
+    private static String pad(String label) {
+        int width = 0;
+        for (int i = 0; i < label.length(); i++) {
+            width += label.charAt(i) > 0x2000 ? 2 : 1;
+        }
+        StringBuilder sb = new StringBuilder(label);
+        for (int i = width; i < 8; i++) {
+            sb.append(' ');
+        }
+        return sb.append(' ').toString();
+    }
+
+    private static Style mark(boolean ok) {
+        return ok ? OK : BAD;
+    }
+
+    /** 是/否只靠颜色区分（绿/红），不加 ✓/✗ 符号。 */
+    private static String yes(boolean ok) {
+        return ok ? "是" : "否";
+    }
+
+    // ---------------------------------------------------------------- 注册
+
+    /**
+     * 权限判定：读取规则 {@code cofDebugCommand}。
+     *
+     * <p>{@code false} = 关闭；数字 = 所需的权限等级。命令解析时都会重新判定，
+     * 所以在游戏里改规则立刻生效。值无法解析时退回默认的 2 级。</p>
+     */
+    private static boolean isEnabledFor(CommandSourceStack source) {
+        String mode = CofSettings.cofDebugCommand;
+        if (mode == null || mode.equalsIgnoreCase("false")) {
+            return false;
+        }
+        if (mode.equalsIgnoreCase("true")) {
+            return source.hasPermission(2);
+        }
+        try {
+            return source.hasPermission(Integer.parseInt(mode.trim()));
+        } catch (NumberFormatException e) {
+            return source.hasPermission(2);
+        }
+    }
+
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cofdebug")
+                .requires(CofDebugCommand::isEnabledFor);
+
+        // ---- /cofdebug tick <pos>：步进一次检查，只报累计与结果（条件复述见 data）
+        root.then(Commands.literal("tick")
+                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                        .executes(context -> {
+                            ServerLevel level = context.getSource().getLevel();
+                            BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+
+                            boolean froze = CauldronFreezing.checkColumn(level, pos);
+                            MutableComponent out = header("tick", pos.toShortString())
+                                    .append(nl())
+                                    .append(row("步进", "1 次结冰检查", SUB))
+                                    .append(nl())
+                                    .append(row("累计", progressText(level, pos), VAL))
+                                    .append(nl())
+                                    .append(row("本次检查", froze ? "结冰了" : "没有结冰",
+                                            mark(froze)));
+                            reply(context, out);
+                            return 1;
+                        })));
+
+        // ---- /cofdebug data <pos> [value]
+        root.then(Commands.literal("data")
+                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                        .executes(context -> {
+                            ServerLevel level = context.getSource().getLevel();
+                            BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+                            int threshold = CauldronFreezing.threshold(CofSettings.cauldronFreezingProduct);
+                            // 全程只读：reportConditions 与进度都走 getIfPresent，不会创建数据文件
+                            CauldronFreezeData data = CauldronFreezeData.getIfPresent(level);
+                            int count = data == null ? 0 : data.get(pos);
+
+                            MutableComponent out = header("data", pos.toShortString())
+                                    .append(nl())
+                                    .append(reportConditions(level, pos))
+                                    .append(nl())
+                                    .append(row("产物", CofSettings.cauldronFreezingProduct
+                                            + "（每 " + threshold + " 次产出 1 个）", SUB))
+                                    .append(nl())
+                                    .append(row("下次结冰", count + 1 >= threshold
+                                            ? "产出产物"
+                                            : "仍不产出",
+                                            count + 1 >= threshold ? OK : SUB));
+                            reply(context, out);
+                            return 1;
+                        })
+                        .then(Commands.argument("value", IntegerArgumentType.integer(0, 100000))
+                                .executes(context -> {
+                                    ServerLevel level = context.getSource().getLevel();
+                                    BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+                                    int value = IntegerArgumentType.getInteger(context, "value");
+                                    CauldronFreezeData.get(level).set(pos, value);
+                                    int now = CauldronFreezeData.get(level).get(pos);
+                                    reply(context, header("data", pos.toShortString())
+                                            .append(nl())
+                                            .append(row("写入结果", "现在累计 " + now + " 次"
+                                                    + (now == 0 ? "（已清空该位置的记录）" : ""), VAL)));
+                                    return 1;
+                                }))));
+
+        // ---- /cofdebug use <pos> [player]
+        root.then(Commands.literal("use")
+                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                        .executes(context -> useItem(context, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> useItem(context,
+                                        EntityArgument.getPlayer(context, "player"))))));
+
+        // ---- /cofdebug bucketcheck [player]
+        root.then(Commands.literal("bucketcheck")
+                .executes(context -> bucketCheck(context, null))
+                .then(Commands.argument("player", EntityArgument.player())
+                        .executes(context -> bucketCheck(context,
+                                EntityArgument.getPlayer(context, "player")))));
+
+        dispatcher.register(root);
+    }
+
+    /** /cofdebug use 的实现；{@code given} 为 null 时用第一个在线玩家。 */
+    private static int useItem(CommandContext<CommandSourceStack> context, ServerPlayer given) {
+        ServerLevel level = context.getSource().getLevel();
+        BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+        ServerPlayer player = given != null ? given : firstPlayer(level);
+        if (player == null) {
+            reply(context, header("use", pos.toShortString())
+                    .append(nl())
+                    .append(row("失败", "没有在线玩家可供交互（可先 /player Bot spawn）", BAD)));
+            return 0;
+        }
+        BlockState before = level.getBlockState(pos);
+        ItemStack held = player.getMainHandItem().copy();
+        player.gameMode.useItemOn(player, level, held, InteractionHand.MAIN_HAND,
+                new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false));
+        ItemStack after = player.getMainHandItem();
+        BlockState now = level.getBlockState(pos);
+
+        reply(context, header("use", pos.toShortString())
+                .append(nl())
+                .append(row("执行者", player.getGameProfile().getName()
+                        + (player.isCreative() ? "（创造模式：手持物不会消耗）" : ""), VAL))
+                .append(nl())
+                .append(row("手持物品", describe(held), VAL))
+                .append(nl())
+                .append(row("交互后", describe(after),
+                        held.getItem() == after.getItem() ? SUB : ARROW))
+                .append(bottleRow(held, after))
+                .append(nl())
+                .append(row("方块变化", idOf(before) + " → " + idOf(now),
+                        before == now ? SUB : ARROW)));
+        return 1;
+    }
+
+    /** /cofdebug bucketcheck 的实现；{@code given} 为 null 时用第一个在线玩家。 */
+    private static int bucketCheck(CommandContext<CommandSourceStack> context, ServerPlayer given) {
+        ServerLevel level = context.getSource().getLevel();
+        ServerPlayer player = given != null ? given : firstPlayer(level);
+        if (player == null) {
+            reply(context, header("bucketcheck", "")
+                    .append(nl())
+                    .append(row("失败", "需要一个在线玩家（可先 /player Bot spawn）", BAD)));
+            return 0;
+        }
+
+        // 放水是两步链，必须整条模拟才反映真实结果
+        ItemStack placementHeld = new ItemStack(Items.WATER_BUCKET);
+        ItemStack placement = ItemUtils.createFilledResult(placementHeld, player,
+                BucketItem.getEmptySuccessItem(placementHeld, player));
+        // 倒进炼药锅路径
+        ItemStack cauldron = ItemUtils.createFilledResult(new ItemStack(Items.WATER_BUCKET),
+                player, new ItemStack(Items.BUCKET));
+        // 两个对照：不该受规则影响
+        ItemStack lava = BucketItem.getEmptySuccessItem(new ItemStack(Items.LAVA_BUCKET), player);
+        ItemStack fillUp = ItemUtils.createFilledResult(new ItemStack(Items.BUCKET), player,
+                new ItemStack(Items.WATER_BUCKET));
+
+        boolean rule = CofSettings.waterBucketNotConsumed;
+        String expected = rule ? "minecraft:water_bucket x1" : "minecraft:bucket x1";
+        boolean placementOk = describe(placement).equals(expected);
+        boolean cauldronOk = describe(cauldron).equals(expected);
+
+                    // 创造模式下原版走"无限材料"分支（getEmptySuccessItem 直接返回输入堆），
+                    // 结果不代表生存，所以这时不标 ✓/✗，只提示原因
+                    boolean creative = player.isCreative();
+                    MutableComponent out = header("bucketcheck", "")
+                            .append(nl())
+                            .append(row("执行者", player.getGameProfile().getName()
+                                    + (creative ? "（创造模式：走无限材料分支，下面的数字不代表生存结果）" : ""),
+                                    creative ? SUB : VAL))
+                            .append(nl())
+                            .append(row("规则", "waterBucketNotConsumed = " + rule, VAL))
+                            .append(nl())
+                            .append(row("期望", expected + "（按当前规则）", SUB))
+                            .append(nl())
+                            .append(row("放水", describe(placement),
+                                    creative ? SUB : mark(placementOk)))
+                            .append(nl())
+                            .append(row("倒进锅", describe(cauldron),
+                                    creative ? SUB : mark(cauldronOk)))
+                            .append(nl())
+                            .append(row("对照·岩浆桶", describe(lava), SUB))
+                            .append(nl())
+                            .append(row("对照·空桶装水", describe(fillUp), SUB));
+                    reply(context, out);
+        return 1;
+    }
+
+    // ---------------------------------------------------------------- 只读诊断
+
+    /** 任意炼药锅（水 / 岩浆 / 细雪 / 空）都算 —— 诊断需要把"锅无水"也报出来。 */
+    private static boolean isCauldron(BlockState state) {
+        return state.getBlock() instanceof AbstractCauldronBlock;
+    }
+
+    /**
+     * 复述该坐标处的完整条件状况（只读，不改变任何东西）。
+     *
+     * <p>坐标处**不是水炼药锅**（无论是别的方块、空炼药锅，还是锅没露天）时，
+     * 也照样把该方块的完整内容与各项条件输出出来，方便一眼看出卡在哪一条。</p>
+     *
+     * <p>判断结果一律靠颜色：满足 = 绿，不满足 = 红。行内不再带 ✓/✗ 或"是/否"标记
+     * （`露天` 的"是/否"是它本身的值，保留）。</p>
+     */
+    private static MutableComponent reportConditions(ServerLevel level, BlockPos anyPosInColumn) {
+        BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, anyPosInColumn);
+        // 要报告的方块：① 传入坐标本身是炼药锅就用它；② 否则在该列地表往下 4 格内找炼药锅
+        //（锅可能被方块盖住）；③ 都找不到就报告传入坐标那一格 —— 这样"不是锅/无水/被盖住"
+        // 三种情况同样能看到完整内容。
+        BlockPos target = null;
+        if (isCauldron(level.getBlockState(anyPosInColumn))) {
+            target = anyPosInColumn;
+        } else {
+            for (int dy = 0; dy >= -4; dy--) {
+                BlockPos probe = surface.offset(0, dy, 0);
+                if (isCauldron(level.getBlockState(probe))) {
+                    target = probe;
+                    break;
+                }
+            }
+            if (target == null) {
+                target = anyPosInColumn;
+            }
+        }
+
+        BlockState state = level.getBlockState(target);
+        boolean isWater = state.is(Blocks.WATER_CAULDRON);
+        int lvl = isWater ? state.getValue(LayeredCauldronBlock.LEVEL) : 0;
+        boolean full = isWater && lvl == LayeredCauldronBlock.MAX_FILL_LEVEL;
+        boolean waterOk = isWater && (!CofSettings.cauldronFreezingRequiresFullWater || full);
+        Holder<Biome> biomeHolder = level.getBiome(target);
+        Biome biome = biomeHolder.value();
+        // Biome 没有重写 toString，直接打印会得到 "net.minecraft...Biome@1a2b3c"，
+        // 所以这里取注册表里的 id；拿不到时给个明确占位符
+        String biomeId = biomeHolder.unwrapKey().map(key -> key.location().toString())
+                .orElse("(不在注册表中)");
+        Biome.Precipitation precipitation = biome.getPrecipitationAt(target, level.getSeaLevel());
+        boolean snow = precipitation == Biome.Precipitation.SNOW;
+        boolean sky = level.canSeeSky(target.above());
+        int light = level.getBrightness(LightLayer.BLOCK, target);
+        boolean lightOk = light < 10;
+        int threshold = CauldronFreezing.threshold(CofSettings.cauldronFreezingProduct);
+        CauldronFreezeData data = CauldronFreezeData.getIfPresent(level);
+        int count = data == null ? 0 : data.get(target);
+
+        MutableComponent out = row("规则", "水锅结冰:" + CofSettings.waterCauldronFreezing
+                + "  满水要求:" + CofSettings.cauldronFreezingRequiresFullWater
+                + "  产物:" + CofSettings.cauldronFreezingProduct
+                + "  结冰速率:" + CofSettings.cauldronFreezingChance,
+                CofSettings.waterCauldronFreezing ? VAL : BAD)
+                .append(nl())
+                .append(row("位置", target.toShortString(), VAL))
+                .append(nl())
+                .append(row("方块", idOf(state), isWater ? VAL : BAD));
+        if (isWater) {
+            out = out.append(nl()).append(row("水位", String.valueOf(lvl), waterOk ? VAL : BAD));
+        }
+        return out.append(nl())
+                .append(row("水位条件", CofSettings.cauldronFreezingRequiresFullWater
+                        ? "需要满水" : "任意水位", waterOk ? VAL : BAD))
+                .append(nl())
+                .append(row("群系", biomeId, VAL))
+                .append(nl())
+                .append(row("降水", String.valueOf(precipitation), mark(snow)))
+                .append(nl())
+                .append(row("露天", yes(sky), mark(sky)))
+                .append(nl())
+                .append(row("方块光", String.valueOf(light), mark(lightOk)))
+                .append(nl())
+                .append(row("累计", count + " / " + threshold, VAL));
+    }
+    private static String progressText(ServerLevel level, BlockPos pos) {
+        CauldronFreezeData data = CauldronFreezeData.getIfPresent(level);
+        int count = data == null ? 0 : data.get(pos);
+        int threshold = CauldronFreezing.threshold(CofSettings.cauldronFreezingProduct);
+        return count + " / " + threshold;
+    }
+
+
+    private static String idOf(BlockState state) {
+        return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+    }
+
+    private static String describe(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return "空手";
+        }
+        return BuiltInRegistries.ITEM.getKey(stack.getItem())
+                + " x" + stack.getCount();
+    }
+
+    /**
+     * 若交互前手里是水瓶，返回一行"水瓶消耗"判定（是否被换成了空玻璃瓶）。
+     *
+     * <p>自带行首换行，不适用时返回空组件，因此可以直接 append 进输出链。</p>
+     */
+    private static MutableComponent bottleRow(ItemStack before, ItemStack after) {
+        if (!WaterBottles.isWaterBottle(before)) {
+            return Component.empty();
+        }
+        boolean kept = WaterBottles.isWaterBottle(after);
+        return nl().append(row("水瓶消耗", kept ? "否" : "是", kept ? OK : BAD));
+    }
+
+    private static ServerPlayer firstPlayer(ServerLevel level) {
+        return level.getServer().getPlayerList().getPlayers().stream().findFirst().orElse(null);
+    }
+
+    // ---------------------------------------------------------------- 输出
+
+    /** 回给执行者（玩家或 RCON 都能读到），同时以纯文本写日志。 */
+    private static void reply(CommandContext<CommandSourceStack> context,
+                              Component message) {
+        context.getSource().sendSuccess(() -> message, false);
+        CofMod.LOGGER.info("[{}] {}", CofMod.MOD_NAME,
+                message.getString().replace("\n", " | ").replaceAll("\\s+", " ").trim());
+    }
+
+    
+}

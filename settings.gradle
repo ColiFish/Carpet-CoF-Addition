@@ -1,0 +1,3 @@
+// 插件解析已经改成 build.gradle 里的 buildscript {} 方式，
+// 这里不需要 pluginManagement 了（那个 marker 地址在国内会挂死）。
+rootProject.name = 'cof'

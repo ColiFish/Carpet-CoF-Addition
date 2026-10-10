@@ -1,0 +1,124 @@
+// ============================================================================
+//  CoF —— 构建脚本
+//
+//  和“国内网络”有关的两处，都在这里绕过了：
+//
+//  1) 不用 plugins { id 'fabric-loom' }，改用 buildscript + apply plugin。
+//     plugins {} 会先去 maven.fabricmc.net 找插件 marker：
+//         /fabric-loom/fabric-loom.gradle.plugin/1.9.2/…pom
+//     这个地址在国内会直接挂死（实测 45 秒超时），Gradle 会卡在配置阶段。
+//     直接声明真实构件 net.fabricmc:fabric-loom:1.9.2 就能正常下（2.6 秒）。
+//
+//  2) local-maven/ 是由 mirror-fabric-deps.ps1 用 curl 预先灌好的本地 Maven 仓库。
+//     因为 maven.fabricmc.net 对 **Gradle 的 HTTP 客户端返回零字节**（连超时都不触发，
+//     构建会卡几十分钟），但同一地址用 curl 能下。Fabric 独有的构件（fabric-loom、
+//     mercury、fabric-loader、intermediary…）只有官方仓库才有，国内镜像全都没有，
+//     所以只能先用 curl 拉到本地；其余依赖（gson/guava/asm…）走阿里云镜像。
+//
+//  两个 Gradle 闭包坑（都实测踩过）：
+//     * buildscript {} 里的 maven url 必须是**字面量**：Gradle 会 rehydrate 这个
+//       闭包，owner 不是脚本本身，读不到脚本里的变量，写变量会报
+//       "Could not get unknown property"。
+//     * 脚本顶层不要裸写 `foo = ...`（那是在给 Project 设属性，会报 unknown property），
+//       要用 ext.foo = ...
+//
+//  诊断开关：
+//     gradle compileJava -PnoFabricRepo
+//     临时禁用官方 Fabric 仓库，让缺失构件立刻 404 报错（而不是挂住几十分钟），
+//     报错信息会直接写出该补哪个构件。
+// ============================================================================
+
+ext.useFabricRepo = !project.hasProperty('noFabricRepo')
+
+buildscript {
+    repositories {
+        maven { name = 'LocalMirror'; url = 'local-maven' }
+        maven { name = 'Aliyun'; url = 'https://maven.aliyun.com/repository/public' }
+        // loom 及其依赖都已经在 local-maven 里，正常不会走到这个仓库；留作兜底。
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+    }
+    dependencies {
+        // 1.9.x 是与 Minecraft 1.21.4 同期的稳定 Loom
+        classpath 'net.fabricmc:fabric-loom:1.9.2'
+    }
+}
+
+apply plugin: 'fabric-loom'
+
+// refmap 名字跟随归档名的话会变成 "Carpet CoF Addition-refmap.json"（含空格）。
+// 资源名带空格虽然一般能用，但 mixin 一旦找不到 refmap 就会启动崩溃，所以这里固定成干净的短名。
+loom {
+    mixin {
+        defaultRefmapName = 'cof-refmap.json'
+    }
+}
+apply plugin: 'maven-publish'
+
+version = project.mod_version
+group = project.maven_group
+
+// ---------------------------------------------------------------------------
+// 单一产物：
+//   gradle build   -> "Carpet CoF Addition-<版本>.jar"
+// 只发一个 jar，调试命令 /cofdebug 始终包含在内。不再有"纯功能版 / 调试版"之分，
+// 因此也没有 -Pdebug 开关，更不需要为了"排除调试类"而用反射注册命令。
+// ---------------------------------------------------------------------------
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven { name = 'LocalMirror'; url = 'local-maven' }
+    maven { name = 'Aliyun'; url = 'https://maven.aliyun.com/repository/public' }
+    if (useFabricRepo) {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+    // Carpet 1.4.161 用的是 Mojang 官方映射（net.minecraft.*），
+    // 所以附属也必须用 mojmap，否则类型对不上（例如 ServerPlayer vs ServerPlayerEntity）
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Carpet 本体：放在 libs/ 里的正式版 jar，Loom 会自动把它从
+    // intermediary 命名空间重映射到开发命名空间，因此可以直接编译引用。
+    modImplementation files("libs/${project.carpet_jar}")
+}
+
+// 注意：本模组**不依赖 Fabric API**。
+// 早先为了加载方块模型/掉落表（属于 Fabric API 的资源加载器提供的能力）才需要它，
+// 现在不注册任何方块/物品、也没有 assets/data 资源，只剩 Carpet 与 Loader 两个依赖。
+// 语言文件是 Carpet 的 Translations 直接从 classpath 读的，与 Fabric API 无关。
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mod_name", project.archives_base_name
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version, "mod_name": project.archives_base_name
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    // MC 1.20.5+（含 1.21.4）要求 Java 21
+    options.release = 21
+}
+
+java {
+    withSourcesJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_cof" }
+    }
+}

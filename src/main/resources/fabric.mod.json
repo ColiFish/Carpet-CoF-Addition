@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "cof",
+  "version": "${version}",
+
+  "name": "${mod_name}",
+  "description": "Carpet 附属：在可降雪区域、露天且光照较暗时，装满水的炼药锅会结冰成冰块炼药锅（不要求正在下雪）；冰块储存在锅内并以等比缩小的模型显示。",
+  "license": "MIT",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "carpet.cof.CofMod"
+    ]
+  },
+  "mixins": [
+    "cof.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "carpet": "*"
+  }
+}

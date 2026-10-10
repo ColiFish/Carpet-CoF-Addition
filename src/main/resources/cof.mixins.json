@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "carpet.cof.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerLevelMixin",
+    "ItemUtilsMixin",
+    "BlockMixin",
+    "AbstractCauldronBlockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
