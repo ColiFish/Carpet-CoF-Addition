@@ -1,4 +1,4 @@
-# Carpet-CoF-Addition
+# Carpet CoF Addition
 
 [中文](README.md) | **English**
 
@@ -7,11 +7,19 @@
 | Dependency | Exact version | Download |
 | --- | --- | --- |
 | Minecraft | **1.21.4** | — |
-| Fabric Loader | **≥ 0.16.9** | <https://fabricmc.net/use/installer/> |
+| Fabric Loader | **≥ 0.16.9** | [client](https://fabricmc.net/use/installer/) / [server](https://fabricmc.net/use/server/) |
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203** (MC 1.21.4 build) | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
 | Java | **21** | [Official Oracle download (Java 21)](https://www.oracle.com/java/technologies/downloads/#java21) |
 
-Download this mod from [Releases](../../releases).
+## Installation
+
+1. **Server**: install the [Fabric server](https://fabricmc.net/use/server/), then drop both **Carpet** and this mod into the server's `mods/` folder
+2. **Single-player / LAN**: the client needs Fabric + Carpet + this mod too — Carpet is declared as a hard dependency, so a client without it fails to start
+3. Download only `Carpet-CoF-Addition-<version>.jar`, **not** the `-sources.jar` (it is just the source bundle and would fail to load from `mods/`)
+
+## Download
+
+Download this mod from [Releases](../../releases): grab `Carpet-CoF-Addition-<version>.jar` (**not** the `-sources.jar`, which is only the source bundle and would fail to load if dropped into `mods/`).
 
 You only need to install Java 21 yourself for a **self-hosted server** or when launching with a manually specified Java: the official launcher ships its own runtime, and launchers such as HMCL / PCL can download one automatically.
 

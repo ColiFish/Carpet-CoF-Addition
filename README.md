@@ -1,4 +1,4 @@
-# Carpet-CoF-Addition
+# Carpet CoF Addition
 
 **中文** | [English](README_en.md)
 
@@ -7,11 +7,19 @@
 | 依赖 | 具体版本 | 下载 |
 | --- | --- | --- |
 | Minecraft | **1.21.4** | — |
-| Fabric Loader | **≥ 0.16.9** | <https://fabricmc.net/use/installer/> |
+| Fabric Loader | **≥ 0.16.9** | [客户端](https://fabricmc.net/use/installer/) / [服务端](https://fabricmc.net/use/server/) |
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203**（MC 1.21.4 版） | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
 | Java | **21** | [Oracle 官方下载（Java 21）](https://www.oracle.com/java/technologies/downloads/#java21) |
 
-本模组从 [Releases](../../releases) 下载。
+## 安装
+
+1. **服务端**：先装 [Fabric 服务端](https://fabricmc.net/use/server/)，再把 **Carpet** 与本模组的 jar 一起放进服务端的 `mods/` 目录
+2. **单人 / 局域网**：客户端也要装 Fabric + Carpet + 本模组——本模组把 Carpet 声明为硬依赖，客户端缺它会直接启动失败
+3. 只下载 `Carpet-CoF-Addition-<版本>.jar`，**不要**下载 `-sources.jar`（那只是源码包，放进 `mods/` 会被当成模组而启动失败）
+
+## 下载
+
+本模组从 [Releases](../../releases) 下载：请下 `Carpet-CoF-Addition-<版本>.jar`（**不要**下 `-sources.jar`，那只是源码包，放进 `mods/` 会被当成模组而启动失败）。
 
 Java 21 只有**自建服务端**或**手动指定 Java 启动**时才需要自己装：官方启动器会自带运行时，HMCL / PCL 这类启动器也能自动下载。
 
