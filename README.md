@@ -51,6 +51,5 @@ Carpet 系模组的惯例：所有功能显式开启，避免影响既有的存�
 
 一个数据文件 `world/data/cof_cauldron_freezes.dat`（每个维度一份），而且**只记录"正在预热中"的位置** —— 产出、挖掉、取水都会立刻清除记录。从没预热过任何锅的世界不会产生这个文件。
 
-## 许可
 
-本项目以 [GPL-3.0](LICENSE)（GPL-3.0-only）发布。Copyright (c) 2026 CoF contributors。
+本mod为vibe coding产物，请谨慎使用

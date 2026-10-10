@@ -51,6 +51,5 @@ Creative mode never consumes items, so those two switches make no visible differ
 
 One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it only stores positions that are **currently warming up** — producing, breaking or emptying a cauldron clears the record immediately. A world that never warmed up a cauldron never gets the file at all.
 
-## License
 
-Released under [GPL-3.0](LICENSE) (GPL-3.0-only). Copyright (c) 2026 CoF contributors.
+This mod is a vibe-coding product; please use it with caution.
