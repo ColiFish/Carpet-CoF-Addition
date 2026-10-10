@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BucketItem;
@@ -97,7 +98,7 @@ public final class CofDebugCommand {
                 .append(arg.isEmpty() ? Component.empty() : Component.literal("  " + arg).withStyle(KEY));
     }
 
-    /** 一行明细：两格缩进 + 灰色标签（补齐到 6 个全角位）+ 值。 */
+    /** 一行明细：两格缩进 + 灰色标签（补齐到 8 格）+ 值。 */
     private static MutableComponent row(String label, String value, Style valueStyle) {
         return Component.literal("  ").append(Component.literal(pad(label)).withStyle(KEY))
                 .append(Component.literal(value).withStyle(valueStyle));
@@ -107,13 +108,30 @@ public final class CofDebugCommand {
     private static String pad(String label) {
         int width = 0;
         for (int i = 0; i < label.length(); i++) {
-            width += label.charAt(i) > 0x2000 ? 2 : 1;
+            width += isWide(label.charAt(i)) ? 2 : 1;
         }
         StringBuilder sb = new StringBuilder(label);
         for (int i = width; i < 8; i++) {
             sb.append(' ');
         }
         return sb.append(' ').toString();
+    }
+
+    /**
+     * 这个字符在游戏字体里占 2 格吗（用于列对齐）。
+     *
+     * <p>只把 CJK / 全角区段算作 2 格。此前用的是 {@code charAt(i) > 0x2000}，那会把
+     * U+2001~U+206F 的通用标点（{@code …} U+2026、{@code —} U+2014、{@code •} U+2022 等）
+     * 也当成全角，将来有标签用到它们就会少补一格、右侧的值错位。</p>
+     */
+    private static boolean isWide(char c) {
+        return (c >= 0x1100 && c <= 0x115F)     // 谚文字母
+                || (c >= 0x2E80 && c <= 0xA4CF) // CJK 部首 / 假名 / 注音 / 统一表意文字
+                || (c >= 0xAC00 && c <= 0xD7A3) // 谚文音节
+                || (c >= 0xF900 && c <= 0xFAFF) // CJK 兼容表意文字
+                || (c >= 0xFE30 && c <= 0xFE6F) // CJK 兼容形式
+                || (c >= 0xFF00 && c <= 0xFF60) // 全角形式
+                || (c >= 0xFFE0 && c <= 0xFFE6); // 全角符号
     }
 
     private static Style mark(boolean ok) {
@@ -186,7 +204,7 @@ public final class CofDebugCommand {
                                 verdict = "结冰并产出产物";
                                 verdictStyle = OK;
                             } else if (result == CauldronFreezing.FreezeResult.WARMED) {
-                                verdict = "条件满足，本次只累计（还没到产出次数）";
+                                verdict = "条件满足，本次只累计";
                                 verdictStyle = ARROW;
                             } else {
                                 verdict = "没有结冰";
@@ -465,6 +483,9 @@ public final class CofDebugCommand {
                 CofSettings.waterCauldronFreezing ? VAL : BAD)
                 .append(nl())
                 .append(row("位置", target.toShortString(), VAL))
+                .append(nl())
+                .append(row("维度", level.dimension().location().toString(),
+                        level.dimension() == Level.OVERWORLD ? VAL : BAD))
                 .append(nl())
                 .append(row("方块", idOf(state), isWater ? VAL : BAD));
         if (isWater) {

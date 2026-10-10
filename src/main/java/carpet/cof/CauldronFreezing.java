@@ -4,12 +4,15 @@
 package carpet.cof;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
@@ -17,6 +20,8 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 结冰判定与执行。
@@ -82,6 +87,25 @@ public final class CauldronFreezing {
         PRODUCED
     }
 
+    /**
+     * 每个维度一个独立随机源。
+     *
+     * <p>不用 {@code level.random}：原版 {@code tickChunk} 里那段降水循环用的是
+     * {@code Level#getBlockRandomPos}（内部 LCG 字段 {@code randValue}），而方块随机刻、
+     * 生物生成等则大量使用 {@code level.random}。我们在 HEAD 注入里额外抽数会平移
+     * 同 tick 后续所有原版抽取的序列，对拍/回放类工具会看到偏差，所以这里完全另起一套。</p>
+     *
+     * <p>代价是抽样方式与原版不同：原版 x/z 由 LCG 低位给出（分布不均），我们是从 16×16 里
+     * 均匀抽取。概率门与迭代次数仍与原版一致，所以节奏相同、落点不同。</p>
+     */
+    private static RandomSource rng(ServerLevel level) {
+        return RNG.computeIfAbsent(level.dimension(),
+                key -> RandomSource.create(level.getRandom().nextLong()));   // 每维度每会话只抽一次种子
+    }
+
+    /** 维度 → 独立随机源。维度数量极少，不会增长。 */
+    private static final Map<ResourceKey<Level>, RandomSource> RNG = new ConcurrentHashMap<>();
+
     private CauldronFreezing() {
     }
 
@@ -93,6 +117,11 @@ public final class CauldronFreezing {
      */
     public static void tickChunk(ServerLevel level, LevelChunk chunk, int randomTickSpeed) {
         if (!CofSettings.waterCauldronFreezing) {
+        // 只处理主世界：下界/末地与自定义维度不考虑（那些维度里的水没有原版降水语义，
+        // 本模组也不打算在那里结冰）。放在最前面还顺带省掉非主世界维度的每区块判定。
+        if (level.dimension() != Level.OVERWORLD) {
+            return;
+        }
             return;
         }
         ChunkPos chunkPos = chunk.getPos();
@@ -104,18 +133,19 @@ public final class CauldronFreezing {
         // 钳到 >= 1：nextInt(1) 恒为 0，也就是"每次迭代都检测"，非法值不会崩。
         int chance = Math.max(1, CofSettings.cauldronFreezingChance);
         for (int i = 0; i < randomTickSpeed; i++) {
-            if (level.random.nextInt(chance) != 0) {
+            if (rng(level).nextInt(chance) != 0) {
                 continue;
             }
             // y 无所谓：高度图只看 x/z
-            BlockPos any = new BlockPos(minX + level.random.nextInt(16), 0,
-                    minZ + level.random.nextInt(16));
+            RandomSource rng = rng(level);
+            BlockPos any = new BlockPos(minX + rng.nextInt(16), 0,
+                    minZ + rng.nextInt(16));
             checkColumn(level, any);
         }
     }
 
     /**
-     * 这一列上"真正会被处理的那口锅"：先看地表那一格，再看它下面一格；都不是水炼药锅就返回 {@code null}。
+     * 这一列上"真正会被处理的那口锅"：先看高度图给出的那一格（炼药锅必然 blocksMotion，所以那格实际永远是空气），再看它下面一格（真正的锅所在）；都不是水炼药锅就返回 {@code null}。
      *
      * <p>炼药锅是空心形状，会不会被算进 {@code MOTION_BLOCKING} 取决于碰撞盒，所以这两格都要看。
      * 诊断命令用它与实际处理目标保持一致（不必自己再猜一遍）。</p>
@@ -138,10 +168,14 @@ public final class CauldronFreezing {
      * @return 这一列实际发生了什么（诊断命令用它如实汇报"仅累计"还是"真产出"）
      */
     public static FreezeResult checkColumn(ServerLevel level, BlockPos anyPosInColumn) {
+        // 与 tickChunk 保持一致：非主世界一律不处理（/cofdebug tick 也走这里）
+        if (level.dimension() != Level.OVERWORLD) {
+            return FreezeResult.NONE;
+        }
         // 和原版一样：把任意高度换算成这一列的地表位置
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, anyPosInColumn);
 
-        // 地表那一格和它下面那一格都试一遍，两种情况都能覆盖
+        // 高度图那一格与它下面那一格都试一遍：真正的锅总在下面那一格，第一格其实是廉价前置筛
         FreezeResult atSurface = tryFreeze(level, surface);
         if (atSurface != FreezeResult.NONE) {
             return atSurface;
@@ -201,13 +235,27 @@ public final class CauldronFreezing {
         // 需要预热的产物：累计次数，达标那一次产出并把计数清零（所以每次产出都要重新预热）。
         // ice 的阈值是 1、计数完全没有作用，所以这种产物压根不碰计数与存档数据。
         if (threshold > 1) {
-            CauldronFreezeData data = CauldronFreezeData.get(level);
-            int count = data.get(pos) + 1;
+            // 惰性创建：只有真的要写下一条 ≥ 1 的记录时才让 CauldronFreezeData 存在。
+            // get() 走的是 computeIfAbsent，而 DimensionDataStorage 在创建实例时就会标脏，
+            // 于是"预热一下马上产出"也会在盘上留下一个空的数据文件；先用 getIfPresent 问一下，
+            // 就能让"从没真正预热过"的世界完全不产生这个文件。
+            // （注意：文件一旦因为真实进度被创建过，在记录清空后仍会留在盘上——这是原版
+            //   SavedData 的行为，本模组不做删除文件这种越界操作。）
+            CauldronFreezeData existing = CauldronFreezeData.getIfPresent(level);
+            int count = (existing == null ? 0 : existing.get(pos)) + 1;
             if (count < threshold) {
+                CauldronFreezeData data = existing != null ? existing : CauldronFreezeData.get(level);
                 data.set(pos, count);   // 只记进度，不产出（水保持不动）
                 return FreezeResult.WARMED;
             }
-            data.set(pos, 0);           // 产出即清零（set(0) 会直接删掉这个位置的记录）
+            if (existing != null) {
+                existing.set(pos, 0);   // 产出即清零（set(0) 会直接删掉这个位置的记录）
+            }
+        } else {
+            // 阈值为 1 的产物（ice）不需要计数。但历史遗留的记录必须清掉：
+            // 否则把产物从 packed_ice/blue_ice 切成 ice 后，那些 count 再也不会被碰到，
+            // 下次切回去就会"白得一次预热"，而玩家按文档预期是每次产出后都要重新预热。
+            CauldronFreezeData.clearIfPresent(level, pos);
         }
 
         // 达产：锅清空 + 锅中心掉出该产物

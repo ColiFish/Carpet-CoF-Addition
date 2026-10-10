@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
   "id": "cof",
-  "version": "${version}",
+  "version": "@version@",
 
-  "name": "${mod_name}",
+  "name": "@mod_name@",
   "description": "水炼药锅在可降雪群系露天结冰并掉落产物（冰块/浮冰/蓝冰），另含水桶、水瓶不消耗开关。A Carpet add-on: water cauldrons freeze in snow biomes and drop products.",
   "license": "MIT",
+  "icon": "assets/cof/icon.png",
   "authors": [
     "ColiFish"
   ],
@@ -29,6 +30,6 @@
     "fabricloader": ">=0.16.9",
     "minecraft": "~1.21.4",
     "java": ">=21",
-    "carpet": "*"
+    "carpet": ">=1.4.161"
   }
 }

@@ -7,6 +7,7 @@ import carpet.cof.CauldronFreezeData;
 import carpet.cof.CofSettings;
 import carpet.cof.WaterBottles;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.cauldron.CauldronInteraction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -22,7 +23,9 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.BlockHitResult;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -54,6 +57,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * <h2>二、取水即作废预热进度</h2>
  *
+ * <p><b>注意执行顺序</b>：上面那条 HEAD 注入一旦 {@code setReturnValue}，本 RETURN 注入<b>仍会执行</b>（Mixin 的语义如此），
+ * 所以"倒水瓶"这条路径会清两次。目前安全，是因为 {@code clearIfPresent} 幂等（记录不存在时不会标脏）；
+ * 但若将来把这里的清理换成更重或非幂等的逻辑，请改成只在"未接管"分支执行。</p>
+ *
  * <p>空桶舀水、玻璃瓶装水之后，立刻清掉该位置的预热记录。挂在 RETURN，是为了<b>用实际结果判断</b>
  * 而不是猜：只有"水位真的变少了 / 已经不是水锅了"才清。被别的模组拦掉的交互、
  * 或者压根没取走水的右键，都不会误清。</p>
@@ -61,12 +68,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(AbstractCauldronBlock.class)
 public abstract class AbstractCauldronBlockMixin {
 
+    /**
+     * 原版查"某物品在炼药锅里做什么"的注册表（{@code protected final} 且没有 getter，只能 shadow）。
+     * 别的模组可以往里面替换/新增处理器，所以接管前必须先看它。
+     */
+    @Shadow
+    @Final
+    protected CauldronInteraction.InteractionMap interactions;
+
     /** 把一瓶水倒进炼药锅：补上水位、音效与游戏事件，并取消原方法（于是水瓶不被消耗）。 */
     @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
     private void cof$pourWaterBottleWithoutConsuming(ItemStack stack, BlockState state, Level level, BlockPos pos,
                                                      Player player, InteractionHand hand, BlockHitResult hit,
                                                      CallbackInfoReturnable<InteractionResult> cir) {
         if (!CofSettings.waterBottleNotConsumed || !WaterBottles.isWaterBottle(stack)) {
+            return;
+        }
+        // 只有"注册表里仍是原版那条填水交互"时才接管。别的模组可以替换 POTION 的处理器，
+        // 如果我们无条件在 HEAD 取消，它们的处理器永远不会被调用（跨模组破坏）。
+        CauldronInteraction handler = this.interactions.map().get(stack.getItem());
+        if (handler == null || !handler.getClass().getName().startsWith("net.minecraft.")) {
             return;
         }
         // 原版只有这两种情况会消耗水瓶；其余（岩浆锅、细雪锅、满水锅）本来就不消耗，交给原版
@@ -83,8 +104,14 @@ public abstract class AbstractCauldronBlockMixin {
         if (level instanceof ServerLevel serverLevel) {
             serverLevel.setBlockAndUpdate(pos, filled);
             serverLevel.playSound(null, pos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);
-            serverLevel.gameEvent(null, GameEvent.FLUID_PLACE, pos);
+            // 空锅 → 1 级水锅时原版发的是 FLUID_PLACE，而在已有水锅上加水位会额外发 BLOCK_CHANGE
+            if (state.is(Blocks.CAULDRON)) {
+                serverLevel.gameEvent(null, GameEvent.FLUID_PLACE, pos);
+            } else {
+                serverLevel.gameEvent(null, GameEvent.BLOCK_CHANGE, pos);
+            }
             player.awardStat(Stats.ITEM_USED.get(stack.getItem()));
+            player.awardStat(Stats.USE_CAULDRON);   // 原版倒水瓶也会记这一条
             // 水位变了，按既定规则作废预热进度
             clearWarmupIfWaterChanged(serverLevel, pos, state);
         }
