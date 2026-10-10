@@ -106,7 +106,7 @@ This is how the mod was tested; a few hard-won lessons:
 4. Add a diagnostic subcommand to `CofDebugCommand` if useful, and document it in `docs/zh/commands.md`; remember to list new mixins in `cof.mixins.json`
 5. `gradle clean build -PnoFabricRepo`, then check `/carpet list CoF` in game for name, description and categories
 6. Note it in `CHANGELOG.md`, bump `mod_version` in `gradle.properties`, tag and publish a release
-7. New **files** must carry the SPDX header too: `// SPDX-License-Identifier: GPL-3.0-only` plus `// Copyright (c) 2026 CoF contributors`
+7. New **files** must carry the SPDX header too: `// SPDX-License-Identifier: MIT` plus `// Copyright (c) 2026 CoF contributors`
 
 ## Implementation notes
 

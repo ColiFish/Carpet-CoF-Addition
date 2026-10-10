@@ -106,7 +106,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 4. 需要诊断手段就在 `CofDebugCommand` 加子命令，并补进 [`docs/zh/commands.md`](commands.md)；新增 mixin 记得写进 `cof.mixins.json`
 5. `gradle clean build -PnoFabricRepo`，进游戏用 `/carpet list CoF` 确认名称、描述、分类都正常
 6. `CHANGELOG.md` 记一笔，`gradle.properties` 提 `mod_version`，打 tag 发 Release
-7. 新增**文件**时同样带上 SPDX 头：`// SPDX-License-Identifier: GPL-3.0-only` 与 `// Copyright (c) 2026 CoF contributors`
+7. 新增**文件**时同样带上 SPDX 头：`// SPDX-License-Identifier: MIT` 与 `// Copyright (c) 2026 CoF contributors`
 
 ## 实现要点
 

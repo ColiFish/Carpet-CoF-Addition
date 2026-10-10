@@ -8,7 +8,7 @@
 - [ ] 游戏内实测过，并在下面写清测试方式（生存/创造、玩家/假人、用了哪条 `/cofdebug`）
 - [ ] 中英文档同步更新（`docs/zh/` 与 `docs/en/` 是两份，容易只改一份）
 - [ ] 新增规则时：三个翻译键齐全（`carpet.rule.<名>.name` / `carpet.rule.<名>` / `carpet.rule.<名>.desc`），README 规则表已加行
-- [ ] 新增文件时：已带 SPDX 头（`// SPDX-License-Identifier: GPL-3.0-only` 与版权行）
+- [ ] 新增文件时：已带 SPDX 头（`// SPDX-License-Identifier: MIT` 与版权行）
 - [ ] `CHANGELOG.md` 已记录，且未使用表情符号
 - [ ] 行为有变化时，已提升 `gradle.properties` 里的 `mod_version`
 
