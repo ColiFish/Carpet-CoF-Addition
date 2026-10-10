@@ -1,6 +1,6 @@
 # 命令文档
 
-**中文** | [English](en/commands.md)
+**中文** | [English](../en/commands.md)
 
 本模组只有一套命令：`/cofdebug`，用于诊断"锅为什么不结冰""物品有没有被消耗"。
 

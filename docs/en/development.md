@@ -1,6 +1,6 @@
 # Development
 
-[中文](../development.md) | **English**
+[中文](../zh/development.md) | **English**
 
 For people changing this mod: how to build it, how to test it, how to add rules, and where the traps are.
 
@@ -102,8 +102,8 @@ This is how the mod was tested; a few hard-won lessons:
    | `carpet.rule.<name>.desc` | Rule description shown by `/carpet <rule>` |
 
    Missing `.name` means an untranslated UI entry; missing the suffix-less key means third-party search cannot find it.
-3. Document it in [`docs/rules.md`](../rules.md) (overview table + a section) and in the English [`docs/en/rules.md`](rules.md)
-4. Add a diagnostic subcommand to `CofDebugCommand` if useful, and document it in `docs/commands.md`; remember to list new mixins in `cof.mixins.json`
+3. Document it in [`docs/zh/rules.md`](../zh/rules.md) (overview table + a section) and in the English [`docs/en/rules.md`](rules.md)
+4. Add a diagnostic subcommand to `CofDebugCommand` if useful, and document it in `docs/zh/commands.md`; remember to list new mixins in `cof.mixins.json`
 5. `gradle clean build -PnoFabricRepo`, then check `/carpet list CoF` in game for name, description and categories
 6. Note it in `CHANGELOG.md`, bump `mod_version` in `gradle.properties`, tag and publish a release
 7. New **files** must carry the SPDX header too: `// SPDX-License-Identifier: GPL-3.0-only` plus `// Copyright (c) 2026 CoF contributors`

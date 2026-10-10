@@ -1,6 +1,6 @@
 # Rules
 
-[中文](../rules.md) | **English**
+[中文](../zh/rules.md) | **English**
 
 This mod ships **7 rules**, all off by default, toggled with Carpet's own commands — no second command set to remember.
 

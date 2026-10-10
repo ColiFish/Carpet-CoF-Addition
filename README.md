@@ -11,15 +11,15 @@
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203**（MC 1.21.4 版） | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
 | Java | **21** | [Eclipse Temurin 21](https://adoptium.net/temurin/releases/?version=21) |
 
-本模组从 [Releases](../../releases) 下载，或参照[开发文档](docs/development.md)自行构建。
+本模组从 [Releases](../../releases) 下载，或参照[开发文档](docs/zh/development.md)自行构建。
 
 ## 文档
 
 | 文档 | 内容 |
 | --- | --- |
-| [规则文档](docs/rules.md) | 7 条规则的逐条说明：默认值、可选值、生效条件、示例、注意事项 |
-| [命令文档](docs/commands.md) | `/cofdebug` 诊断命令的语法、参数、输出样例与组合用法 |
-| [开发文档](docs/development.md) | 从源码构建、如何测试、新增规则的步骤、实现要点与踩过的坑 |
+| [规则文档](docs/zh/rules.md) | 7 条规则的逐条说明：默认值、可选值、生效条件、示例、注意事项 |
+| [命令文档](docs/zh/commands.md) | `/cofdebug` 诊断命令的语法、参数、输出样例与组合用法 |
+| [开发文档](docs/zh/development.md) | 从源码构建、如何测试、新增规则的步骤、实现要点与踩过的坑 |
 
 英文版：[README_en.md](README_en.md) · [docs/en/](docs/en/)（同三份文档的英文版）
 

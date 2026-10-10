@@ -23,7 +23,7 @@
 
 **文档**
 
-- README 面向使用者重写，正文拆分为[规则文档](docs/rules.md)、[命令文档](docs/commands.md)、[开发文档](docs/development.md)三份
+- README 面向使用者重写，正文拆分为[规则文档](docs/zh/rules.md)、[命令文档](docs/zh/commands.md)、[开发文档](docs/zh/development.md)三份
 - 全部文档提供**英文版**：[README_en.md](README_en.md)、[docs/en/rules.md](docs/en/rules.md)、[docs/en/commands.md](docs/en/commands.md)、[docs/en/development.md](docs/en/development.md)
 
 ### 🐛 修复

@@ -1,6 +1,6 @@
 # 规则文档
 
-**中文** | [English](en/rules.md)
+**中文** | [English](../en/rules.md)
 
 本模组共 **7 条规则**，全部默认关闭，用 Carpet 自己的命令开关，不需要记第二套指令。
 

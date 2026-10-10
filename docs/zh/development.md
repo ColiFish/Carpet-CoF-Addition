@@ -1,6 +1,6 @@
 # 开发文档
 
-**中文** | [English](en/development.md)
+**中文** | [English](../en/development.md)
 
 面向改这个模组的人：怎么构建、怎么测、怎么加规则、哪里容易踩坑。
 
@@ -102,8 +102,8 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
    | `carpet.rule.<名>.desc` | 规则描述，`/carpet <规则名>` 显示 |
 
    漏了 `.name` 界面不翻译，漏了无后缀那个第三方工具搜不到。
-3. 在 [`docs/rules.md`](rules.md) 补一节（总览表 + 逐条说明）
-4. 需要诊断手段就在 `CofDebugCommand` 加子命令，并补进 [`docs/commands.md`](commands.md)；新增 mixin 记得写进 `cof.mixins.json`
+3. 在 [`docs/zh/rules.md`](rules.md) 补一节（总览表 + 逐条说明）
+4. 需要诊断手段就在 `CofDebugCommand` 加子命令，并补进 [`docs/zh/commands.md`](commands.md)；新增 mixin 记得写进 `cof.mixins.json`
 5. `gradle clean build -PnoFabricRepo`，进游戏用 `/carpet list CoF` 确认名称、描述、分类都正常
 6. `CHANGELOG.md` 记一笔，`gradle.properties` 提 `mod_version`，打 tag 发 Release
 7. 新增**文件**时同样带上 SPDX 头：`// SPDX-License-Identifier: GPL-3.0-only` 与 `// Copyright (c) 2026 CoF contributors`

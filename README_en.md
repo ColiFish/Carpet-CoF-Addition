@@ -21,7 +21,7 @@ Download this mod from [Releases](../../releases), or build it yourself as descr
 | [Commands](docs/en/commands.md) | `/cofdebug` syntax, arguments, sample output and combined workflows |
 | [Development](docs/en/development.md) | Building from source, testing, adding a rule, implementation notes and pitfalls |
 
-Chinese version: [README.md](README.md) · [docs/](docs/) (the same three documents in Chinese)
+Chinese version: [README.md](README.md) · [docs/](docs/zh/) (the same three documents in Chinese)
 
 ## FAQ
 

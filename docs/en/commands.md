@@ -1,6 +1,6 @@
 # Commands
 
-[中文](../commands.md) | **English**
+[中文](../zh/commands.md) | **English**
 
 This mod has exactly one command: `/cofdebug`, used to diagnose "why did this cauldron not freeze" and "was my item consumed".
 
