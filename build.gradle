@@ -124,7 +124,7 @@ jar {
 }
 
 
-// 源码归档同样附上许可证：GPL 要求所有分发副本都携带许可声明
+// 源码归档同样附上许可证：MIT 要求分发副本携带版权与许可声明
 tasks.matching { it.name == 'sourcesJar' }.configureEach {
     from("LICENSE") {
         rename { "${it}_cof" }
