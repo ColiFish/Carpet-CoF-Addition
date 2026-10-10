@@ -51,7 +51,7 @@ With this off, the core mechanic does nothing and the other rules become meaning
 
 ### Tick cadence
 
-Hooked into `ServerLevel#tickChunk`, replicating vanilla's precipitation loop bit for bit:
+Hooked into `ServerLevel#tickChunk`, replicating the structure and the 1/48 chance gate of vanilla's precipitation loop:
 
 ```java
 for (int i = 0; i < randomTickSpeed; i++)     // 3 by default

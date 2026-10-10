@@ -9,6 +9,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write   # upload-artifact 需要
+
+# 同一分支的重复推送只保留最新一次，避免并发共用同一个 Gradle 缓存键
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,14 +40,22 @@ jobs:
           JAR=$(sed -n 's/^carpet_jar=//p' gradle.properties)
           echo "minecraft=$MC  carpet_jar=$JAR"
           mkdir -p libs
-          URL=$(curl -sS -H 'User-Agent: Carpet-CoF-Addition-ci' \
-            "https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D" \
-            | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
-          if [ -z "$URL" ]; then
+          API="https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D"
+          META=$(curl -sS --fail --location --retry 3 --retry-all-errors \
+            -H 'User-Agent: Carpet-CoF-Addition-ci' "$API")
+          URL=$(echo "$META" | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
+          SHA=$(echo "$META" | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .hashes.sha512' | head -n1)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
             echo "::error::Modrinth 上没有找到 $JAR（检查 gradle.properties 的 carpet_jar）"
             exit 1
           fi
-          curl -sSL -o "libs/$JAR" "$URL"
+          curl -sS --fail --location --retry 3 --retry-all-errors -o "libs/$JAR" "$URL"
+          test -s "libs/$JAR"
+          if [ -n "$SHA" ] && [ "$SHA" != "null" ]; then
+            echo "$SHA  libs/$JAR" | sha512sum -c -
+          else
+            echo "::warning::Modrinth 未提供 sha512，跳过校验"
+          fi
           ls -l libs
 
       - name: 构建

@@ -2,6 +2,25 @@
 
 本项目遵循「一版一 tag」：`gradle.properties` 里的 `mod_version` 与 git tag `vX.Y.Z` 对应，发行产物是 `dist/Carpet-CoF-Addition-<版本>.jar`。
 
+## 1.0.1
+
+修复 `/cofdebug` 诊断命令的一批行为问题，并加固构建流程。
+
+### 修复
+
+- `/cofdebug tick` 现在遵守总开关 `waterCauldronFreezing`：关闭时拒绝执行，不再把锅抽干、掉出产物
+- `/cofdebug tick` 如实区分"仅累计"与"真产出"，并新增 `目标` 行显示实际会被处理的那口锅
+- `/cofdebug data` 与 `tick` 共用同一套目标定位，报告的目标与结冰逻辑保持一致
+- `/cofdebug bucketcheck` 在创造模式下直接跳过：该路径会把测试物品放进玩家背包，数字也不代表生存语义
+- `/cofdebug data <坐标> 0` 改走只读路径，不再凭空建出空的存档数据文件
+- `/cofdebug` 的权限判定改为失败即关闭：非法取值一律视为关闭，负数拒绝，权限等级钳制到 0~4
+
+### 设计与实现
+
+- 结冰检查抽出 `FreezeResult` 返回值与共用的 `findCauldron()`，让诊断与真实逻辑不再各猜一遍
+- 文档措辞修正：检测频率是"与原版降水循环同结构、同 1/48 概率门"，而不是逐位一致
+- 构建流程加固：工作流补 `permissions` 与 `concurrency`；Carpet 下载加 `--fail`、重试、大小检查与 sha512 校验；发布前校验 tag 与 `mod_version` 一致
+- `.gitattributes` 标记 PowerShell 脚本不参与语言统计
 ## 1.0.0
 
 首个版本。Carpet 附属，共 7 条规则、1 套诊断命令。
@@ -10,7 +29,7 @@
 
 **规则**
 
-- **炼药锅结冰**（`waterCauldronFreezing`，默认关）：会下雪的群系 + 露天 + 方块光 < 10 时，水炼药锅结冰并在锅中心掉出产物。检测挂在 `ServerLevel#tickChunk`，逐位复刻原版降水循环
+- **炼药锅结冰**（`waterCauldronFreezing`，默认关）：会下雪的群系 + 露天 + 方块光 < 10 时，水炼药锅结冰并在锅中心掉出产物。检测挂在 `ServerLevel#tickChunk`，与原版降水循环同结构、同 1/48 概率门
 - **炼药锅结冰产物**（`cauldronFreezingProduct`，默认 `ice`）：`ice` 每次都产出 / `packed_ice` 每 2 次 / `blue_ice` 每 3 次；每次产出后计数清零，需重新预热
 - **炼药锅结冰需要满水**（`cauldronFreezingRequiresFullWater`，默认开）
 - **炼药锅结冰速率**（`cauldronFreezingChance`，默认 `48`，与原版同节奏；取值不受限）
