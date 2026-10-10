@@ -11,7 +11,7 @@
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203**（MC 1.21.4 版） | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
 | Java | **21** | [Oracle 官方下载（Java 21）](https://www.oracle.com/java/technologies/downloads/#java21) |
 
-本模组从 [Releases](../../releases) 下载，或参照[开发文档](docs/zh/development.md)自行构建。
+本模组从 [Releases](../../releases) 下载。
 
 Java 21 只有**自建服务端**或**手动指定 Java 启动**时才需要自己装：官方启动器会自带运行时，HMCL / PCL 这类启动器也能自动下载。
 
@@ -21,9 +21,8 @@ Java 21 只有**自建服务端**或**手动指定 Java 启动**时才需要自�
 | --- | --- |
 | [规则文档](docs/zh/rules.md) | 7 条规则的逐条说明：默认值、可选值、生效条件、示例、注意事项 |
 | [命令文档](docs/zh/commands.md) | `/cofdebug` 诊断命令的语法、参数、输出样例与组合用法 |
-| [开发文档](docs/zh/development.md) | 从源码构建、如何测试、新增规则的步骤、实现要点与踩过的坑 |
 
-英文版：[README_en.md](README_en.md) · [docs/en/](docs/en/)（同三份文档的英文版）
+英文版：[README_en.md](README_en.md) · [docs/en/](docs/en/)（同两份文档的英文版）
 
 ## 常见问题
 

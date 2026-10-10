@@ -11,7 +11,7 @@
 | [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203** (MC 1.21.4 build) | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
 | Java | **21** | [Official Oracle download (Java 21)](https://www.oracle.com/java/technologies/downloads/#java21) |
 
-Download this mod from [Releases](../../releases), or build it yourself as described in the [development docs](docs/en/development.md).
+Download this mod from [Releases](../../releases).
 
 You only need to install Java 21 yourself for a **self-hosted server** or when launching with a manually specified Java: the official launcher ships its own runtime, and launchers such as HMCL / PCL can download one automatically.
 
@@ -21,9 +21,8 @@ You only need to install Java 21 yourself for a **self-hosted server** or when l
 | --- | --- |
 | [Rules](docs/en/rules.md) | All 7 rules: defaults, accepted values, conditions, examples, caveats |
 | [Commands](docs/en/commands.md) | `/cofdebug` syntax, arguments, sample output and combined workflows |
-| [Development](docs/en/development.md) | Building from source, testing, adding a rule, implementation notes and pitfalls |
 
-Chinese version: [README.md](README.md) · [docs/](docs/zh/) (the same three documents in Chinese)
+Chinese version: [README.md](README.md) · [docs/](docs/zh/) (the same two documents in Chinese)
 
 ## FAQ
 
