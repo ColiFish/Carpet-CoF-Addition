@@ -2,13 +2,17 @@ name: release
 
 # 推送 v* 标签时自动构建并把 jar 附到 GitHub Release。
 # Release 说明默认由 GitHub 依据提交自动生成，发布后可在网页上改写成 CHANGELOG 的分节内容。
+# 发布由维护者在 GitHub Releases 页面手动进行。
+# 这个工作流**不在推 tag 时自动触发**，避免与手动发布互相覆盖；
+# 需要 CI 代劳时，在 Actions → release → Run workflow 里填 tag 手动触发。
 on:
-  push:
-    tags: ['v[0-9]*']
+  # 想恢复"推 tag 就自动发布"，取消下面两行注释即可：
+  # push:
+  #   tags: ['v[0-9]*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 要发布或更新的 tag（例如 v1.0.0）
+        description: 要发布或更新的 tag（例如 v1.0.1）
         required: true
         type: string
 

@@ -137,4 +137,7 @@ gradle clean build -PnoFabricRepo      # 本机装了 Gradle 8.12
 4. GitHub Releases 上传 `dist/Carpet-CoF-Addition-<版本>.jar`（可选：一并传 `-sources.jar`）
 5. 发布说明按 `CHANGELOG.md` 的分节（新内容 / 修复 / 设计与实现）抄写；**不要使用表情符号**
 
-> 推送 `v*` 标签后，GitHub Actions 会自动构建并创建 Release（见 `.github/workflows/release.yml`），网页上只需把自动生成的说明改写成上面的分节内容；每次 push 与 PR 也会自动构建一次（`.github/workflows/build.yml`）。
+> **发布由维护者手动进行**：GitHub → Releases → Draft a new release → 选已有 tag（或新建 `v<版本>`）→
+> 说明按上面的分节抄 `CHANGELOG.md` → 附件拖入 `dist/` 里的两个 jar → Publish。
+> `release.yml` 已改为**仅手动触发**（Actions → release → Run workflow，填 tag），推 tag 不会再自动发布，
+> 因此不会与手动发布互相覆盖。每次 push 与 PR 仍会自动构建一次（`build.yml`）。
