@@ -4,7 +4,7 @@
   "version": "${version}",
 
   "name": "${mod_name}",
-  "description": "Carpet 附属：在可降雪区域、露天且光照较暗时，装满水的炼药锅会结冰成冰块炼药锅（不要求正在下雪）；冰块储存在锅内并以等比缩小的模型显示。",
+  "description": "水炼药锅在可降雪群系露天结冰并掉落产物（冰块/浮冰/蓝冰），另含水桶、水瓶不消耗开关。A Carpet add-on: water cauldrons freeze in snow biomes and drop products.",
   "license": "MIT",
 
   "environment": "*",
