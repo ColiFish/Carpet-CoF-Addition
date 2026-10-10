@@ -8,3 +8,5 @@
 *.jar binary
 *.png binary
 *.zip binary
+# 这两个脚本只是国内网络的构建辅助，不计入 GitHub 的语言统计
+*.ps1 linguist-documentation

@@ -4,7 +4,7 @@ name: release
 # Release 说明默认由 GitHub 依据提交自动生成，发布后可在网页上改写成 CHANGELOG 的分节内容。
 on:
   push:
-    tags: ['v*']
+    tags: ['v[0-9]*']
   workflow_dispatch:
     inputs:
       tag:
@@ -15,6 +15,11 @@ on:
 permissions:
   contents: write   # 创建 Release 需要写权限
 
+# 同一个 tag 的重复触发串行化，避免 "先查后建" 竞态导致的 422
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -23,6 +28,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+
+      - name: 校验 tag 与 mod_version 一致
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VER=$(sed -n 's/^mod_version=//p' gradle.properties)
+          echo "目标 tag：$TAG    gradle.properties mod_version：$VER"
+          if [ "$TAG" != "v$VER" ]; then
+            echo "::error::tag 与 mod_version 不一致：tag 是 $TAG，应为 v$VER（先改 gradle.properties 再打 tag）"
+            exit 1
+          fi
 
       - name: 准备 JDK 21
         uses: actions/setup-java@v4
@@ -38,20 +54,36 @@ jobs:
           JAR=$(sed -n 's/^carpet_jar=//p' gradle.properties)
           echo "minecraft=$MC  carpet_jar=$JAR"
           mkdir -p libs
-          URL=$(curl -sS -H 'User-Agent: Carpet-CoF-Addition-ci' \
-            "https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D" \
-            | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
-          if [ -z "$URL" ]; then
+          API="https://api.modrinth.com/v2/project/carpet/version?game_versions=%5B%22${MC}%22%5D&loaders=%5B%22fabric%22%5D"
+          META=$(curl -sS --fail --location --retry 3 --retry-all-errors \
+            -H 'User-Agent: Carpet-CoF-Addition-ci' "$API")
+          URL=$(echo "$META" | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .url' | head -n1)
+          SHA=$(echo "$META" | jq -r --arg f "$JAR" '.[] | .files[] | select(.filename == $f) | .hashes.sha512' | head -n1)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
             echo "::error::Modrinth 上没有找到 $JAR（检查 gradle.properties 的 carpet_jar）"
             exit 1
           fi
-          curl -sSL -o "libs/$JAR" "$URL"
+          curl -sS --fail --location --retry 3 --retry-all-errors -o "libs/$JAR" "$URL"
+          test -s "libs/$JAR"
+          if [ -n "$SHA" ] && [ "$SHA" != "null" ]; then
+            echo "$SHA  libs/$JAR" | sha512sum -c -
+          else
+            echo "::warning::Modrinth 未提供 sha512，跳过校验"
+          fi
           ls -l libs
 
       - name: 构建
         run: |
           chmod +x ./gradlew   # 仓库在 Windows 上提交，可能没带可执行位
           ./gradlew build --no-daemon --stacktrace
+
+      - name: 校验产物
+        run: |
+          NAME=$(sed -n 's/^archives_base_name=//p' gradle.properties)
+          VER=$(sed -n 's/^mod_version=//p' gradle.properties)
+          test -f "build/libs/${NAME}-${VER}.jar"
+          test -f "build/libs/${NAME}-${VER}-sources.jar"
+          echo "产物齐全：${NAME}-${VER}.jar / -sources.jar"
 
       - name: 整理产物（文件名里的空格换成连字符，下载链接更好看）
         run: |

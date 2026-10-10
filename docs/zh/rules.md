@@ -49,7 +49,7 @@
 
 ### 检测节奏
 
-挂在 `ServerLevel#tickChunk`，逐位复刻原版降水循环：
+挂在 `ServerLevel#tickChunk`，与原版降水循环同结构、同 1/48 概率门：
 
 ```java
 for (int i = 0; i < randomTickSpeed; i++)     // 默认 3 次
