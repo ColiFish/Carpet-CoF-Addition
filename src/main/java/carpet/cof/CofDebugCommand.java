@@ -36,6 +36,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.npc.Villager;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 诊断命令。
@@ -304,6 +307,11 @@ public final class CofDebugCommand {
                                 }))));
 
         // ---- /cofdebug use <pos> [player]
+        // reputation：查看某玩家对"最近村民"的声望（账本逐条贡献需另用 /data get … Gossips）
+        root.then(Commands.literal("reputation")
+                .executes(context -> reputation(context, null))
+                .then(Commands.argument("player", EntityArgument.player())
+                        .executes(context -> reputation(context, EntityArgument.getPlayer(context, "player")))));
         root.then(Commands.literal("use")
                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                         .executes(context -> useItem(context, null))
@@ -417,6 +425,47 @@ public final class CofDebugCommand {
     // ---------------------------------------------------------------- 只读诊断
 
     /** 任意炼药锅（水 / 岩浆 / 细雪 / 空）都算 —— 诊断需要把"锅无水"也报出来。 */
+    /**
+     * 声望查询：输出指定玩家对范围内"最近村民"的声望，并标注是否达到铁傀儡防卫阈值。
+     *
+     * <p>声望 = Σ(账本条目 Value × 该类型权重)：major_negative -5、minor_negative -1、
+     * minor_positive +1、major_positive +5、trading +1。逐条明细见
+     * {@code /data get entity <村民> Gossips}。</p>
+     */
+    private static int reputation(CommandContext<CommandSourceStack> context, ServerPlayer given) {
+        ServerPlayer player = given != null ? given : context.getSource().getPlayer();
+        if (player == null) {
+            reply(context, header("reputation", "?")
+                    .append(nl())
+                    .append(row("玩家", "未指定：请以玩家身份执行，或写成 /cofdebug reputation <玩家>", mark(false))));
+            return 0;
+        }
+
+        ServerLevel level = player.serverLevel();
+        List<Villager> villagers = level.getEntitiesOfClass(Villager.class, player.getBoundingBox().inflate(64.0));
+        if (villagers.isEmpty()) {
+            reply(context, header("reputation", player.getName().getString())
+                    .append(nl())
+                    .append(row("村民", "64 格内没有村民", mark(false))));
+            return 0;
+        }
+
+        Villager nearest = villagers.stream()
+                .min(Comparator.comparingDouble(v -> v.distanceToSqr(player)))
+                .orElse(villagers.get(0));
+        int value = nearest.getPlayerReputation(player);
+        boolean defence = value <= -100;
+
+        MutableComponent out = header("reputation", player.getName().getString())
+                .append(nl())
+                .append(row("村民", nearest.getDisplayName().getString() + "  " + nearest.blockPosition().toShortString(), SUB))
+                .append(nl())
+                .append(row("声望", String.valueOf(value), mark(!defence)))
+                .append(nl())
+                .append(row("铁傀儡防卫", defence ? "是" : "否", mark(!defence)));
+        reply(context, out);
+        return 1;
+    }
     private static boolean isCauldron(BlockState state) {
         return state.getBlock() instanceof AbstractCauldronBlock;
     }
