@@ -83,7 +83,7 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
     // Carpet 1.4.161 用的是 Mojang 官方映射（net.minecraft.*），
-    // 所以附属也必须用 mojmap，否则类型对不上（例如 ServerPlayer vs ServerPlayerEntity）
+    // 所以附属也必须用同一套映射，否则类型对不上（例如玩家类型在两套映射里名字不同）
     mappings loom.officialMojangMappings()
 
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -95,7 +95,7 @@ dependencies {
 
 // 注意：本模组**不依赖 Fabric API**。
 // 早先为了加载方块模型/掉落表（属于 Fabric API 的资源加载器提供的能力）才需要它，
-// 现在不注册任何方块/物品、也没有 assets/data 资源，只剩 Carpet 与 Loader 两个依赖。
+// 现在不注册任何方块/物品、也没有 data 资源（assets 下只有语言文件与模组图标），只剩 Carpet 与 Loader 两个依赖。
 // 语言文件是 Carpet 的 Translations 直接从 classpath 读的，与 Fabric API 无关。
 
 // 注意：processResources 用的 Groovy expand() 对 $ 与 \ 敏感 ——
