@@ -1,10 +1,10 @@
-# 规则文档
+# 规则
 
 **中文** | [English](../en/rules.md)
 
-本模组共 **7 条规则**。功能开关（结冰、水桶、水瓶）默认关闭，装上不改原版行为；参数类规则（产物、满水要求、速率）有各自的默认值；调试命令 `cofDebugCommand` 默认 `2`（OP 即可使用）。全用 Carpet 自己的命令开关，不需要记第二套指令。
+**提示：可以使用 `Ctrl+F` 快速查找自己想要的规则。**
 
-```
+```text
 /carpet <规则名> <值>              # 临时修改（重启后恢复）
 /carpet <规则名>                   # 查询描述、当前值与可选值
 /carpet setDefault <规则名> <值>    # 永久修改
@@ -12,238 +12,102 @@
 /carpet list CoF                   # 列出本模组全部规则
 ```
 
-## 总览
-
-| 规则名 | 中文名 | 默认值 | 可选值 | 分类 |
-| --- | --- | --- | --- | --- |
-| `waterCauldronFreezing` | 炼药锅结冰 | `false` | `true` / `false` | `CoF` `feature` |
-| `cauldronFreezingProduct` | 炼药锅结冰产物 | `ice` | `ice` / `packed_ice` / `blue_ice` | `CoF` `feature` |
-| `cauldronFreezingRequiresFullWater` | 炼药锅结冰需要满水 | `true` | `true` / `false` | `CoF` `feature` |
-| `cauldronFreezingChance` | 炼药锅结冰速率 | `48` | 任意正整数（界面给 6 个建议值） | `CoF` `feature` |
-| `waterBucketNotConsumed` | 水桶不消耗 | `false` | `true` / `false` | `CoF` `survival` `feature` |
-| `waterBottleNotConsumed` | 水瓶不消耗 | `false` | `true` / `false` | `CoF` `survival` `feature` |
-| `cofDebugCommand` | CoF调试工具 | `2` | `false` / `0` ~ `4` | `CoF` `command` `creative` `feature` |
-
-一条规则可以同时属于总分类与子分类，`/carpet <规则名>` 的 `Tags:` 会全部列出。子分类沿用 Carpet 自己的词汇，所以 `/carpet list feature` 能把本模组的规则和 Carpet 本体的一起筛出来。
-
 ---
 
-## waterCauldronFreezing —— 炼药锅结冰（总开关）
+## 炼药锅结冰 (waterCauldronFreezing)
 
-**只在主世界生效**：下界、末地以及自定义维度都不处理（那里的"水"没有原版降水语义）。
+允许下雨天/雪天让水炼药锅自然结冰。
 
-| | |
-| --- | --- |
-| 默认值 | `false` |
-| 类型 | 布尔 |
-| 分类 | `CoF` `feature` |
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `feature`
 
-**描述**：在会下雪的群系里，露天且方块光低于10时，装满水的炼药锅会结冰，并在锅中心掉出产物。
+## 炼药锅结冰产物 (cauldronFreezingProduct)
 
-关闭时本模组的核心功能完全不工作，其它规则也随之失去意义。
+含水炼药锅结冰后的产物，每产出1个需要满足以下结冰次数：ice = 每次都给冰块、packed_ice = 每2次给1个浮冰、blue_ice = 每3次给1个蓝冰，每次产出后计数清零。
 
-### 结冰的四个条件
+- 类型: `string`
+- 默认值: `ice`
+- 参考选项: `ice`, `packed_ice`, `blue_ice`
+- 分类: `CoF`, `feature`
 
-1. **不要求"当前正在下雪"** —— 条件完全由位置决定
-2. **在可降雪群系**：`Biome#getPrecipitationAt(坐标, 海平面) == SNOW`（按高度修正温度，即跟随原版雪线）
-3. **该位置能接到雪**：锅必须位于该列地表（`MOTION_BLOCKING` 高度图那一格），且头顶露天
-4. **该位置方块光 < 10**（与原版水结冰一致，看的是方块光，所以白天不阻碍）
+## 炼药锅结冰需要满水 (cauldronFreezingRequiresFullWater)
 
-### 检测节奏
+含水炼药锅是否必须满水位才结冰。
 
-挂在 `ServerLevel#tickChunk`，与原版降水循环同结构、同 1/48 概率门：
+- 类型: `boolean`
+- 默认值: `true`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `feature`
 
-```java
-for (int i = 0; i < randomTickSpeed; i++)     // 默认 3 次
-    if (this.random.nextInt(<cauldronFreezingChance>) == 0)
-        // 结冰检查
-```
+## 炼药锅结冰速率 (cauldronFreezingChance)
 
-也就是每列每 tick 被检测到的概率是 randomTickSpeed × (1/256) × (1/48) = 3/12288 = **1/4096**，默认约 **205 秒**轮到一次。
-`randomTickSpeed` 设为 0 时和原版一样完全不检测。
+结冰检测频率，48 ≈ 原版水源结冰，数值越小越快。
 
-**必须有玩家或 Carpet 假人在区块模拟距离内**：只加载区块（`forceload`）不会触发 `tickChunk`。
+- 类型: `int`
+- 默认值: `48`
+- 分类: `CoF`, `feature`
 
-### 产出与位置
+## 水桶不消耗 (waterBucketNotConsumed)
 
-* 结冰的那一次：**锅被清空**（水真的被消耗），并在**锅中心**掉出 1 个产物
-* 掉落物碰撞箱底部**紧贴锅内壁最底面**（`y + 0.25`），不会穿过锅底
+生存模式下使用水桶不消耗。
 
-### 示例
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
 
-```
-/carpet waterCauldronFreezing true
-/carpet cauldronFreezingProduct blue_ice
-/carpet setDefault waterCauldronFreezing true      # 永久生效
-```
+## 水瓶不消耗 (waterBottleNotConsumed)
 
----
+生存模式下使用水瓶往炼药锅灌水不消耗。
 
-## cauldronFreezingProduct —— 炼药锅结冰产物
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
 
-| | |
-| --- | --- |
-| 默认值 | `ice` |
-| 可选值 | `ice` / `packed_ice` / `blue_ice` |
-| 分类 | `CoF` `feature` |
+## CoF调试工具 (cofDebugCommand)
 
-**注意**：预热进度只记录"次数"，不区分是哪条规则攒下的——中途切换产物档位（`packed_ice` ↔ `blue_ice`）或满水要求时，已有次数会按新规则继续计算；被方块完全盖住的锅不会被检测，其进度会保留到再次被检测为止。
+是否启用 /cofdebug 诊断命令，0~4为启用且只有权限等级达到该数字的玩家可用。
 
-**描述**：含水炼药锅产出什么，以及每产出1个需要满足几次结冰条件：ice = 每次都给冰块、packed_ice = 每2次给1个浮冰、blue_ice = 每3次给1个蓝冰，每次产出后计数清零。
+- 类型: `string`
+- 默认值: `2`
+- 参考选项: `false`, `0`, `1`, `2`, `3`, `4`
+- 分类: `CoF`, `command`, `creative`, `feature`
 
-### 预热节奏
+## 低价村民 (lowPriceVillagers)
 
-规则值决定"**每产出 1 个需要满足几次结冰**"。**每次产出后计数清零**，所以要拿下一个产物就得重新预热：
+村民出售的商品按价格区间下限出售，只影响新刷出的交易。
 
-| 产物 | 第 1 次 | 第 2 次 | 第 3 次 | 第 4 次 | 节奏 |
-| --- | --- | --- | --- | --- | --- |
-| `ice`（默认） | **冰块** | 冰块 | 冰块 | 冰块 | 每次都给 |
-| `packed_ice` | 不产出 | **浮冰** | 不产出 | 浮冰 | 每 2 次给 1 个 |
-| `blue_ice` | 不产出 | 不产出 | **蓝冰** | 不产出 | 每 3 次给 1 个 |
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
 
-* **预热阶段**：不产出任何东西，而且**水保持不动**（锅仍是满水锅，下一次检测继续累计）
-* **产出的那一次**：锅被清空，玩家重新灌水后进入下一轮预热
-* `ice` 的阈值是 1、计数毫无作用，因此这一档**完全不碰计数与存档数据**（不会创建数据文件）
+## 声望不涨价 (reputationNoPriceHike)
 
-### 预热进度什么时候作废
+村民因声望调价时只能降价或不变。
 
-判据统一是一句话：**这口锅现在还结得了冰吗**。
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
 
-| 中断方式 | 清零时机 |
-| --- | --- |
-| 产出（锅被清空） | 立即（本来就清零） |
-| 挖掉炼药锅 | **立即** |
-| 空桶舀水 / 玻璃瓶装水 | **立即**；判据与"满水要求"联动（见下条规则） |
-| 换成岩浆锅 / 细雪锅 / 空锅 / 其它方块 | 下次随机刻抽到该列时（通常几分钟内） |
+## 正义的伙伴 (righteousCompanion)
 
-预热进度按**方块坐标**持久化在 `world/data/cof_cauldron_freezes.dat`（每个维度一份），并且**只记录"预热进行中"的位置**：产出即清零（记录被直接删掉），所以数据量天然很小。所有清理都走"只读不创建"，因此从没预热过任何锅的世界不会产生这个文件。
+铁傀儡永不主动攻击玩家：不再因村庄声望出手，也不会在被玩家攻击后还手，开启后正在追击玩家的傀儡会立刻收手，但关闭后会立即受村庄声望影响。
 
-### 示例
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
 
-```
-/carpet cauldronFreezingProduct packed_ice
-/carpet cauldronFreezingProduct              # 显示当前值与 Options
-/cofdebug data <坐标>                        # 查看该位置已累计几次
-/cofdebug data <坐标> <值>                   # 改写累计次数（0 = 清除记录）
-```
+## 新手村民交易不重置 (noviceVillagerTradeNotReset)
 
----
+新手村民不会因自己弄丢工作站而重随机交易。
 
-## cauldronFreezingRequiresFullWater —— 炼药锅结冰需要满水
-
-| | |
-| --- | --- |
-| 默认值 | `true` |
-| 类型 | 布尔 |
-| 分类 | `CoF` `feature` |
-
-**描述**：打开时只有装满水的锅会结冰，关掉后水位 1~3 都能结冰。
-
-这条规则同时决定"什么算预热被中断"：
-
-| 模式 | 水位变化（例如 3 → 2，或用水瓶灌到 3） | 水被取光 |
-| --- | --- | --- |
-| `true`（默认，满水） | **立即作废**预热进度 | 作废 |
-| `false`（任意水位） | **不影响**进度（只要还有水，就仍能继续累计） | 作废 |
-
-也就是说：满水模式下要求水位"原封不动"，任意水位模式下只要锅还是水炼药锅就继续算账。
-
----
-
-## cauldronFreezingChance —— 炼药锅结冰速率
-
-| | |
-| --- | --- |
-| 默认值 | `48` |
-| 类型 | 整数 |
-| 建议值 | `1` / `4` / `12` / `48` / `96` / `192`（界面上的 `Options`，点击即可用） |
-| 分类 | `CoF` `feature` |
-
-**描述**：结冰检测频率，48 ≈ 原版水源结冰，数值越小越快。
-
-这是概率门的分母：每次迭代通过概率为 **1/N**，所以 N 越小越快。默认 `48` 与原版降水循环里的 `random.nextInt(48)` 完全一致。
-
-**取值不受限**：任意正整数都可以，界面上的 6 个 `Options` 只是建议值（`strict = false`）。非法值（≤ 0）会按 1 处理。
-
-```
-/carpet cauldronFreezingChance 12      # 比默认快 4 倍
-/carpet cauldronFreezingChance 1       # 每次迭代都检测（调试用）
-```
-
----
-
-## waterBucketNotConsumed —— 水桶不消耗
-
-| | |
-| --- | --- |
-| 默认值 | `false` |
-| 类型 | 布尔 |
-| 分类 | `CoF` `survival` `feature` |
-
-**描述**：生存模式下使用水桶不消耗。
-
-覆盖两条路径：把水**放出来**（对着地面倒水）、把水**倒进炼药锅**。开启后手上仍然是那个水桶，也不会多出空桶。
-
-创造模式本来就不消耗物品，所以这个开关只在生存模式能看出差别。
-
----
-
-## waterBottleNotConsumed —— 水瓶不消耗
-
-| | |
-| --- | --- |
-| 默认值 | `false` |
-| 类型 | 布尔 |
-| 分类 | `CoF` `survival` `feature` |
-
-**描述**：生存模式下使用水瓶往炼药锅灌水不消耗。
-
-原版会消耗水瓶并给玩家一个空玻璃瓶；开启后水照常倒进锅里（水位 +1），但**手上还是那个水瓶**。
-
-覆盖两种原版会消耗水瓶的情形：
-
-| 锅里原本的方块 | 原版行为 | 开启本规则后 |
-| --- | --- | --- |
-| 空炼药锅 | 灌成 1 级水锅，消耗水瓶 | 灌成 1 级水锅，**水瓶保留** |
-| 水锅 1 级 / 2 级 | 水位 +1，消耗水瓶 | 水位 +1，**水瓶保留** |
-| 水锅满 3 级 | 无动作 | 无动作 |
-| 岩浆锅 / 细雪锅 | 无动作 | 无动作 |
-
-**喝水瓶不受影响**：喝药水（`PotionItem#finishUsingItem`）同样返回空玻璃瓶，但那条路径刻意不拦，否则会变成可以无限续杯的刷水瓶漏洞。
-
-保留的是**原来那个水瓶**（含数据组件与自定义名称），不是新建一个。
-
----
-
-## cofDebugCommand —— CoF调试工具
-
-| | |
-| --- | --- |
-| 默认值 | `2` |
-| 可选值 | `false` / `0` ~ `4` |
-| 分类 | `CoF` `command` `creative` `feature` |
-
-**描述**：是否启用 /cofdebug 诊断命令，0~4为启用且只有权限等级达到该数字的玩家可用。
-
-| 取值 | 含义 |
-| --- | --- |
-| `false` | 完全关闭：命令不可用，也不会出现在补全里 |
-| `0` ~ `4` | 启用，且只有权限等级 ≥ 该数字的玩家/控制台可用（`2` 即需要 OP） |
-
-判定发生在每次执行时，所以**改完立刻生效，无需重启**。服务端控制台与 RCON 的权限等级是 4，因此默认设置下它们可用。
-
-**取值只接受 `false` 或 `0`~`4`**：解析失败或出现负数时一律视为关闭，不会静默放宽成"需要 OP"。
-
-命令的详细用法见 [命令文档](commands.md)。
-
----
-
-## 附录：为什么不做成新方块
-
-早期版本确实实现过"结冰的炼药锅"这个**真方块**（含 blockstate、模型、掉落表、标签），后来全部删除，换成现在这套**纯逻辑**实现。原因：
-
-* **注册表污染**：新方块意味着新 ID。玩家卸载模组后，存档里那些方块会变成"未定义方块"，轻则报错重则坏存档
-* **需要额外资源与依赖**：模型、贴图、掉落表、标签一多，就不再是"纯逻辑"模组了，还会牵连额外的库依赖
-* **符合 Carpet 系附属的惯例**：只改原版行为、不新增内容，才敢直接装在生产服务器上
-
-所以结冰的表现是「把原版水炼药锅清空 + 在锅中心掉出产物」，而不是换成一个新方块。这也是本模组"零注册项"的由来。
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`

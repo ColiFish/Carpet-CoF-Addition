@@ -26,10 +26,10 @@ You only need to install Java 21 yourself for a **self-hosted server** or when l
 
 | Document | Content |
 | --- | --- |
-| [Rules](docs/en/rules.md) | All 7 rules: defaults, accepted values, conditions, examples, caveats |
-| [Commands](docs/en/commands.md) | `/cofdebug` syntax, arguments, sample output and combined workflows |
+| [Rules](docs/en/rules.md) | All 11 rules: description, type, default, options and categories |
+| [Commands](docs/en/commands.md) | Syntax and effects of every `/cofdebug` subcommand |
 
-Chinese version: [README.md](README.md) · [docs/](docs/zh/) (the same two documents in Chinese)
+Chinese version: [README.md](README.md) · [docs/zh/](docs/zh/) (the same two documents in Chinese)
 
 ## FAQ
 
@@ -57,6 +57,22 @@ Creative mode never consumes items, so those two switches make no visible differ
 
 One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it only stores positions that are **currently warming up** — producing, breaking or emptying a cauldron clears the record immediately. A world that never warmed up a cauldron never gets the file at all.
 
+
+**Why do my rule changes revert after a restart?**
+
+`/carpet <rule> <value>` only affects the current run. Use `/carpet setDefault <rule> <value>` to store it permanently in the world config, and `/carpet removeDefault <rule>` to drop it.
+
+**Why does Low Price Villagers not affect my existing villagers?**
+
+It only affects trades rolled **after** it is enabled. Villagers with locked-in trades keep their prices; only newly generated offers (new villagers, or a new career tier from levelling up) are priced at the bottom of their range.
+
+**After turning Righteous Companion off, iron golems attack me again - did the rule fail?**
+
+No. Disabling it restores vanilla behaviour immediately: when a nearby villager's reputation for you is <= -100, golems defend the village again. Only while the rule is on do they never attack players on their own.
+
+**I broke the workstation but the villager kept its profession?**
+
+Check whether Novice Villager Trades Don't Reset is on: it only blocks the **spontaneous** refresh caused by the villager losing its own claim; **destroying the workstation block** still clears the profession as in vanilla (replace the block to re-roll trades). If breaking the block does not clear it either, the rule is not behaving as intended.
 
 ## Warning
 
