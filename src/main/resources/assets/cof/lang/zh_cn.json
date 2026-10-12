@@ -8,18 +8,34 @@
   "carpet.rule.waterBucketNotConsumed.name": "水桶不消耗",
   "carpet.rule.cofDebugCommand.name": "CoF调试工具",
   "carpet.rule.cofDebugCommand": "CoF调试工具(cofDebugCommand)",
-  "carpet.rule.cofDebugCommand.desc": "是否启用 /cofdebug 诊断命令，0~4为启用且只有权限等级达到该数字的玩家可用",
+  "carpet.rule.cofDebugCommand.desc": "是否启用 /cofdebug 诊断命令，0~4为启用且只有权限等级达到该数字的玩家可用。",
   "carpet.rule.waterCauldronFreezing": "炼药锅结冰(waterCauldronFreezing)",
-  "carpet.rule.waterCauldronFreezing.desc": "在会下雪的群系里，露天且方块光低于10时，装满水的炼药锅会结冰，并在锅中心掉出产物",
+  "carpet.rule.waterCauldronFreezing.desc": "允许下雨天/雪天让水炼药锅自然结冰。",
   "carpet.rule.cauldronFreezingProduct": "炼药锅结冰产物(cauldronFreezingProduct)",
-  "carpet.rule.cauldronFreezingProduct.desc": "含水炼药锅产出什么，以及每产出1个需要满足几次结冰条件：ice = 每次都给冰块、packed_ice = 每2次给1个浮冰、blue_ice = 每3次给1个蓝冰，每次产出后计数清零。",
+  "carpet.rule.cauldronFreezingProduct.desc": "含水炼药锅结冰后的产物，每产出1个需要满足以下结冰次数：ice = 每次都给冰块、packed_ice = 每2次给1个浮冰、blue_ice = 每3次给1个蓝冰，每次产出后计数清零。",
   "carpet.rule.waterBucketNotConsumed": "水桶不消耗(waterBucketNotConsumed)",
-  "carpet.rule.waterBucketNotConsumed.desc": "生存模式下使用水桶不消耗",
+  "carpet.rule.waterBucketNotConsumed.desc": "生存模式下使用水桶不消耗。",
   "carpet.rule.waterBottleNotConsumed.name": "水瓶不消耗",
   "carpet.rule.waterBottleNotConsumed": "水瓶不消耗(waterBottleNotConsumed)",
-  "carpet.rule.waterBottleNotConsumed.desc": "生存模式下使用水瓶往炼药锅灌水不消耗",
+  "carpet.rule.waterBottleNotConsumed.desc": "生存模式下使用水瓶往炼药锅灌水不消耗。",
   "carpet.rule.cauldronFreezingChance": "炼药锅结冰速率(cauldronFreezingChance)",
-  "carpet.rule.cauldronFreezingChance.desc": "结冰检测频率，48 ≈ 原版水源结冰，数值越小越快",
+  "carpet.rule.cauldronFreezingChance.desc": "结冰检测频率，48 ≈ 原版水源结冰，数值越小越快。",
   "carpet.rule.cauldronFreezingRequiresFullWater": "炼药锅结冰需要满水(cauldronFreezingRequiresFullWater)",
-  "carpet.rule.cauldronFreezingRequiresFullWater.desc": "打开时只有装满水的锅会结冰，关掉后水位 1~3 都能结冰"
+  "carpet.rule.cauldronFreezingRequiresFullWater.desc": "含水炼药锅是否必须满水位才结冰。",
+
+  "carpet.rule.lowPriceVillagers.name": "低价村民",
+  "carpet.rule.lowPriceVillagers": "低价村民(lowPriceVillagers)",
+  "carpet.rule.lowPriceVillagers.desc": "村民出售的商品按价格区间下限出售，只影响新刷出的交易。",
+
+  "carpet.rule.reputationNoPriceHike.name": "声望不涨价",
+  "carpet.rule.reputationNoPriceHike": "声望不涨价(reputationNoPriceHike)",
+  "carpet.rule.reputationNoPriceHike.desc": "村民因声望调价时只能降价或不变。",
+
+  "carpet.rule.righteousCompanion.name": "正义的伙伴",
+  "carpet.rule.righteousCompanion": "正义的伙伴(righteousCompanion)",
+  "carpet.rule.righteousCompanion.desc": "铁傀儡永不主动攻击玩家：不再因村庄声望出手，也不会在被玩家攻击后还手，开启后正在追击玩家的傀儡会立刻收手，但关闭后会立即受村庄声望影响。",
+
+  "carpet.rule.noviceVillagerTradeNotReset.name": "新手村民交易不重置",
+  "carpet.rule.noviceVillagerTradeNotReset": "新手村民交易不重置(noviceVillagerTradeNotReset)",
+  "carpet.rule.noviceVillagerTradeNotReset.desc": "新手村民不会因自己弄丢工作站而重随机交易。"
 }

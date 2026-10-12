@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * {@code main}，再跑 {@code server}/{@code client} 入口，而 Carpet 的
  * {@code onGameStarted()} 就是从它自己的 server/client 入口触发的。</p>
  *
- * <p>本模组<b>不注册任何方块或物品</b>：结冰功能只是把原版水炼药锅清空、
+ * <p>本模组<b>不注册任何方块或物品</b>：所有功能都只改原版行为，例如结冰只是把原版水炼药锅清空、
  * 并在锅中心生成一个原版冰块掉落物，所以没有任何注册时机问题。</p>
  */
 public class CofMod implements ModInitializer {

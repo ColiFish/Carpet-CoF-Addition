@@ -7,7 +7,17 @@
     "ServerLevelMixin",
     "ItemUtilsMixin",
     "BlockMixin",
-    "AbstractCauldronBlockMixin"
+    "AbstractCauldronBlockMixin",
+    "VillagerTradesEnchantBookMixin",
+    "VillagerTradesEnchantedItemMixin",
+    "VillagerReputationPriceMixin",
+    "DefendVillageTargetGoalMixin",
+    "HurtByTargetGoalMixin",
+    "IronGolemAttackMixin",
+    "TargetGoalContinueMixin",
+    "VillagerReleasePoiMixin",
+    "TargetGoalAccessor",
+    "ResetProfessionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
