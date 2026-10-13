@@ -17,7 +17,13 @@
     "TargetGoalContinueMixin",
     "VillagerReleasePoiMixin",
     "TargetGoalAccessor",
-    "ResetProfessionMixin"
+    "ResetProfessionMixin",
+    "GunpowderIgniteMixin",
+    "FireChargeItemSoundMixin",
+    "VillagerNitwitConversionMixin",
+    "ZombieVillagerNitwitBackupMixin",
+    "ZombieNitwitBackupMixin",
+    "VillagerTradesExtraBooksMixin"
   ],
   "injectors": {
     "defaultRequire": 1

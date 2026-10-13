@@ -169,4 +169,42 @@ public class CofSettings {
      */
     @Rule(categories = {CATEGORY, CATEGORY_SURVIVAL, CATEGORY_FEATURE})
     public static boolean noviceVillagerTradeNotReset = false;
+
+    /**
+     * 可燃火药：手持火药右键方块时，行为与烈焰弹完全一致。
+     *
+     * <p>实现方式是把这次交互<b>委托给原版烈焰弹</b>，因此点火、点燃营火 / 蜡烛 / 蛋糕蜡烛、
+     * 激活下界传送门、引燃 TNT 等行为，以及音效、粒子与"消耗 1 个"的手感都与烈焰弹逐项一致，
+     * 不需要自己复刻任何一条分支。</p>
+     *
+     * <p>只影响"主手右键方块"这一条路径；发射器仍按原版处理。</p>
+     */
+    @Rule(categories = {CATEGORY, CATEGORY_SURVIVAL, CATEGORY_FEATURE})
+    public static boolean flammableGunpowder = false;
+
+    /**
+     * 傻子可逆转化：普通村民与傻子村民之间可来回转化。
+     *
+     * <p>成年村民在虚弱状态下被喂毒马铃薯会变成傻子；傻子在再生状态下被喂金苹果会变回原职业。
+     * 职业、经验与整份交易列表都会备份在村民的自定义 NBT 标签里（群系风格与职业无关，天然保留），
+     * 因此可以随时来回转化；转化后的傻子按原版语义不能交易。</p>
+     *
+     * <p>仅对成年村民生效（幼年村民放行原版行为）；金苹果对普通村民仍是原版繁殖触发，不受影响。</p>
+     */
+    @Rule(categories = {CATEGORY, CATEGORY_SURVIVAL, CATEGORY_FEATURE})
+    public static boolean nitwitConversion = false;
+
+    /**
+     * 亚历山大图书馆：图书管理员也可以售卖「迅捷潜行」「灵魂疾行」「风爆」的附魔书。
+     *
+     * <p>这三种在原版属于宝藏附魔里<b>唯一不在 {@code #minecraft:tradeable} 标签</b>的三种，因此原版图书管理员
+     * 永远刷不出它们。本规则在"从标签里随机取一本"这一步把池子扩成"标签内容 + 这三种"，效果等同于原版
+     * 标签里多了它们：抽取仍均匀、等级仍走原版范围（因此覆盖 1~3 全部等级）、价格仍走原版公式，
+     * 而它们本就在 {@code #minecraft:treasure}（= 双倍价标签）里，所以自动按宝藏附魔计费（并受 64 封顶）。</p>
+     *
+     * <p>只影响<b>新刷出</b>的交易：已经刷出过附魔书的村民，其交易存在自己的 {@code Offers} 里，
+     * 关闭本规则不会改变它们。</p>
+     */
+    @Rule(categories = {CATEGORY, CATEGORY_SURVIVAL, CATEGORY_FEATURE})
+    public static boolean libraryOfAlexandria = false;
 }
