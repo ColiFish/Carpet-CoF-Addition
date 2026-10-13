@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.npc.Villager;
@@ -311,7 +312,15 @@ public final class CofDebugCommand {
         root.then(Commands.literal("reputation")
                 .executes(context -> reputation(context, null))
                 .then(Commands.argument("player", EntityArgument.player())
-                        .executes(context -> reputation(context, EntityArgument.getPlayer(context, "player")))));
+                        .executes(context -> reputation(context, EntityArgument.getPlayer(context, "player"))))
+                .then(Commands.literal("clear")
+                        .executes(context -> reputationClear(context, 32, null))
+                        .then(Commands.argument("radius", IntegerArgumentType.integer(1, 256))
+                                .executes(context -> reputationClear(context, IntegerArgumentType.getInteger(context, "radius"), null))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> reputationClear(context, IntegerArgumentType.getInteger(context, "radius"), EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> reputationClear(context, 32, EntityArgument.getPlayer(context, "player"))))));
         root.then(Commands.literal("use")
                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                         .executes(context -> useItem(context, null))
@@ -466,6 +475,49 @@ public final class CofDebugCommand {
         reply(context, out);
         return 1;
     }
+    /** 清空半径内村民的流言账本（本命令唯一的写操作）。只动 Gossips，不碰交易/经验/职业。 */
+    private static int reputationClear(CommandContext<CommandSourceStack> context, int radius, ServerPlayer only) {
+        ServerLevel level = context.getSource().getLevel();
+        Vec3 center = context.getSource().getPosition();
+        List<Villager> villagers = level.getEntitiesOfClass(Villager.class,
+                new AABB(center.x - radius, center.y - radius, center.z - radius,
+                         center.x + radius, center.y + radius, center.z + radius));
+        int cleared = 0;
+        var onlyId = only == null ? null : only.getUUID();
+        for (Villager villager : villagers) {
+            var gossips = villager.getGossips();
+            var entries = gossips.getGossipEntries();
+            if (entries.isEmpty()) {
+                continue;
+            }
+            var uuids = onlyId == null ? List.copyOf(entries.keySet()) : List.of(onlyId);
+            boolean touched = false;
+            for (var uuid : uuids) {
+                var types = entries.get(uuid);
+                if (types == null || types.isEmpty()) {
+                    continue;
+                }
+                for (var type : List.copyOf(types.keySet())) {
+                    gossips.remove(uuid, type);
+                }
+                touched = true;
+            }
+            if (touched) {
+                cleared++;
+            }
+        }
+        reply(context, header("reputation clear", "")
+                .append(nl())
+                .append(row("范围", only == null ? "所有玩家" : only.getName().getString(), SUB))
+                .append(nl())
+                .append(row("半径", radius + " 格", SUB))
+                .append(nl())
+                .append(row("范围内村民", villagers.size() + " 个", SUB))
+                .append(nl())
+                .append(row("已清空", cleared + " 个村民的账本", mark(true))));
+        return cleared;
+    }
+
     private static boolean isCauldron(BlockState state) {
         return state.getBlock() instanceof AbstractCauldronBlock;
     }
