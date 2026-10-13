@@ -26,7 +26,7 @@ You only need to install Java 21 yourself for a **self-hosted server** or when l
 
 | Document | Content |
 | --- | --- |
-| [Rules](docs/en/rules.md) | All 11 rules: description, type, default, options and categories |
+| [Rules](docs/en/rules.md) | All 14 rules: description, type, default, options and categories |
 | [Commands](docs/en/commands.md) | Syntax and effects of every `/cofdebug` subcommand |
 
 Chinese version: [README.md](README.md) · [docs/zh/](docs/zh/) (the same two documents in Chinese)
@@ -57,6 +57,32 @@ Creative mode never consumes items, so those two switches make no visible differ
 
 One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it only stores positions that are **currently warming up** — producing, breaking or emptying a cauldron clears the record immediately. A world that never warmed up a cauldron never gets the file at all.
 
+
+**Why does right-clicking with gunpowder do nothing?**
+
+Check that Flammable Gunpowder is on. When on, right-clicking a block with gunpowder ignites like a fire charge and
+consumes one gunpowder: it lights campfires and candles, activates nether portals and primes TNT. The sound is the
+"item burning in lava" sound at a lower volume, so it differs from a real fire charge. When off, gunpowder is not
+consumed and nothing happens.
+
+**How long does the nitwit conversion take, and can it be interrupted?**
+
+3-5 minutes (the same value vanilla uses when curing a zombie villager). During it the profession stays unchanged and
+the villager accepts no interaction. If the chunk unloads (or the server stops), the countdown **pauses** instead of
+being cancelled and resumes later. **Turning the rule off mid-conversion cancels that conversion immediately**
+progress (the countdown is cleared and the Strength it granted is removed); re-enabling the rule does not resume it - feed the villager again.
+
+**Why is a villager still a nitwit after I turned Reversible Nitwit Conversion off?**
+
+The rule only governs triggering and the process itself; it never rolls back a finished conversion. To convert it
+back, give the villager **Regeneration** and feed it a golden apple - the original profession, experience and trades
+are restored, together with its workstation claim.
+
+**Why do old villagers still sell those three books after I disabled Library of Alexandria?**
+
+The rule only affects **newly generated** trades. Existing trades live in the villager's own trade list, so
+disabling the rule does not change them - the same semantics as Low Price Villagers, which only affects new (or
+newly added) trades.
 
 **Why do my rule changes revert after a restart?**
 

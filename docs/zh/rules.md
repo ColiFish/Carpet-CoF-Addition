@@ -111,3 +111,31 @@
 - 默认值: `false`
 - 参考选项: `false`, `true`
 - 分类: `CoF`, `survival`, `feature`
+
+
+## 可燃火药 (flammableGunpowder)
+
+火药像烈焰弹一样可以点火。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
+
+## 傻子可逆转化 (nitwitConversion)
+
+成年村民在虚弱状态下被喂毒马铃薯会变成傻子；傻子在再生状态下被喂金苹果会变回原职业，职业、经验与交易列表都会保留，可随时来回转化。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`
+
+## 亚历山大图书馆 (libraryOfAlexandria)
+
+图书管理员可以出售所有种类的附魔书，新增的三种按宝藏附魔计算价格
+
+- 类型: `boolean`
+- 默认值: `false`
+- 参考选项: `false`, `true`
+- 分类: `CoF`, `survival`, `feature`

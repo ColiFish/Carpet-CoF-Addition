@@ -4,7 +4,7 @@
   "version": "@version@",
 
   "name": "@mod_name@",
-  "description": "一批可开关的原版改动：炼药锅结冰、水桶/水瓶不消耗、低价村民等。A Carpet add-on with toggleable vanilla tweaks: cauldron freezing, non-consuming water buckets and bottles, low-price villagers, and more.",
+  "description": "一批可开关的原版改动（共 14 条规则）：炼药锅结冰与产物、水桶/水瓶不消耗、村民低价与声望调价、铁傀儡不主动攻击玩家、新手村民交易不重置、火药点火、村民与傻子可逆转化、图书管理员售卖全部宝藏附魔书等。A Carpet add-on with 14 toggleable vanilla tweaks: cauldron freezing and its product, non-consuming buckets and bottles, villager trade prices and reputation, passive iron golems, persistent novice trades, ignitable gunpowder, reversible villager/nitwit conversion, and librarian trades for every treasure enchantment book.",
   "license": "MIT",
   "icon": "assets/cof/icon.png",
   "authors": [

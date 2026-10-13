@@ -1,5 +1,5 @@
 name: Bug 反馈
-description: 结冰、产出、水桶/水瓶规则等行为与文档不符时使用
+description: 任意规则（结冰、水桶/水瓶、村民与交易、铁傀儡、火药、村民转化等）行为与文档不符时使用
 title: "[Bug] "
 labels: ["bug"]
 body:

@@ -55,7 +55,6 @@ loom {
         defaultRefmapName = 'cof-refmap.json'
     }
 }
-apply plugin: 'maven-publish'
 
 version = project.mod_version
 group = project.maven_group
@@ -127,7 +126,6 @@ jar {
         rename { "${it}_cof" }
     }
 }
-
 
 // 源码归档同样附上许可证：MIT 要求分发副本携带版权与许可声明
 tasks.matching { it.name == 'sourcesJar' }.configureEach {

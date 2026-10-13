@@ -111,3 +111,31 @@ Novice villagers never re-roll their trades because they lost their workstation 
 - Default: `false`
 - Options: `false`, `true`
 - Categories: `CoF`, `survival`, `feature`
+
+
+## Flammable Gunpowder (flammableGunpowder)
+
+Gunpowder can ignite fire just like a fire charge.
+
+- Type: `boolean`
+- Default: `false`
+- Options: `false`, `true`
+- Categories: `CoF`, `survival`, `feature`
+
+## Reversible Nitwit Conversion (nitwitConversion)
+
+An adult villager fed a poisonous potato while weakened becomes a nitwit; a nitwit fed a golden apple while regenerating turns back into its original profession, and the profession, experience and trades are preserved so the conversion can be reversed at any time.
+
+- Type: `boolean`
+- Default: `false`
+- Options: `false`, `true`
+- Categories: `CoF`, `survival`, `feature`
+
+## Library of Alexandria (libraryOfAlexandria)
+
+Librarians can sell enchanted books of every kind; the three newly added ones are priced as treasure enchantments.
+
+- Type: `boolean`
+- Default: `false`
+- Options: `false`, `true`
+- Categories: `CoF`, `survival`, `feature`
