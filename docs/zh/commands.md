@@ -64,6 +64,7 @@
 - 用副本模拟，**实质只读**；创造模式下直接跳过。
 
 ## 声望查询 (`/cofdebug reputation`)
+/cofdebug reputation clear [半径] [玩家]   # 清空半径内村民的流言账本（默认 32 格，1~256）：不给玩家=清所有玩家的，给了=只清该玩家的
 
 ### 语法
 - `/cofdebug reputation [玩家]`

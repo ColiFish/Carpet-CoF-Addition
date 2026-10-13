@@ -64,6 +64,7 @@ The mod adds exactly one command: `/cofdebug`, for inspecting the live state of 
 - Uses copies, so it is **effectively read-only**; skipped entirely in creative mode.
 
 ## Reputation query (`/cofdebug reputation`)
+/cofdebug reputation clear [radius] [player]   # clear the gossip ledger of villagers within the radius (default 32, 1-256): omit the player to clear it for every player, pass one to clear only theirs
 
 ### Syntax
 - `/cofdebug reputation [player]`
