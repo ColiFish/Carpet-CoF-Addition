@@ -56,7 +56,8 @@ public abstract class VillagerTradesExtraBooksMixin {
             pool.add(holder);
         }
         for (String id : COF_EXTRA_BOOKS) {
-            registry.get(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.withDefaultNamespace(id)))
+            registry.getOptional(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.withDefaultNamespace(id)))
+                    .map(registry::wrapAsHolder)
                     .ifPresent(pool::add);
         }
         if (pool.isEmpty()) {

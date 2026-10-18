@@ -3,6 +3,8 @@
 
 package carpet.cof;
 
+import carpet.cof.compat.Compat;
+
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -37,21 +39,17 @@ import net.minecraft.world.level.saveddata.SavedData;
  * <b>不会</b>造成未定义方块。</p>
  */
 public class CauldronFreezeData extends SavedData {
-    private static final String FILE_ID = "cof_cauldron_freezes";
+    public static final String FILE_ID = "cof_cauldron_freezes";
     private static final String KEY_POS = "Pos";
     private static final String KEY_COUNT = "Count";
     /** 旧格式（早期版本用过）：Entries 列表，每条一个 CompoundTag。只用于向下兼容读取。 */
     private static final String KEY_ENTRIES = "Entries";
 
-    private static final SavedData.Factory<CauldronFreezeData> FACTORY =
-            new SavedData.Factory<>(CauldronFreezeData::new, CauldronFreezeData::load,
-                    DataFixTypes.SAVED_DATA_COMMAND_STORAGE);
-
     private final Long2IntMap counts = new Long2IntOpenHashMap();
 
     /** 取（必要时创建）该维度的记录 —— 只在真的要写入时使用。 */
     public static CauldronFreezeData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(FACTORY, FILE_ID);
+        return Compat.getFreezeData(level);
     }
 
     /**
@@ -63,7 +61,7 @@ public class CauldronFreezeData extends SavedData {
      * @return 该维度还没有记录时返回 {@code null}
      */
     public static CauldronFreezeData getIfPresent(ServerLevel level) {
-        return level.getDataStorage().get(FACTORY, FILE_ID);
+        return Compat.getFreezeDataIfPresent(level);
     }
 
     /**
@@ -103,7 +101,11 @@ public class CauldronFreezeData extends SavedData {
         }
     }
 
-    @Override
+    /** 供 1.21.5+ 的 Codec 使用（clusterA 走 SavedData#save，两簇共用同一份 NBT 布局 ✓）。 */
+    public CompoundTag toTag() {
+        return save(new CompoundTag(), null);
+    }
+
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         // 两个平行数组：每条只占 8+4 字节，且写入过程中不创建任何临时对象
         //（早先用的是"每条一个 CompoundTag"的列表，数量大时会在存档瞬间制造大量垃圾）
@@ -121,13 +123,13 @@ public class CauldronFreezeData extends SavedData {
         return tag;
     }
 
-    private static CauldronFreezeData load(CompoundTag tag, HolderLookup.Provider registries) {
+    public static CauldronFreezeData fromTag(CompoundTag tag) {
         CauldronFreezeData data = new CauldronFreezeData();
 
         // 当前格式：两个平行数组
-        if (tag.contains(KEY_POS, Tag.TAG_LONG_ARRAY)) {
-            long[] positions = tag.getLongArray(KEY_POS);
-            int[] values = tag.getIntArray(KEY_COUNT);
+        if (Compat.hasLongArray(tag, KEY_POS)) {
+            long[] positions = Compat.getLongArray(tag, KEY_POS);
+            int[] values = Compat.getIntArray(tag, KEY_COUNT);
             int size = Math.min(positions.length, values.length);
             for (int i = 0; i < size; i++) {
                 int value = values[i];
@@ -139,12 +141,18 @@ public class CauldronFreezeData extends SavedData {
         }
 
         // 兼容旧格式：Entries 列表
-        ListTag list = tag.getList(KEY_ENTRIES, Tag.TAG_COMPOUND);
+        ListTag list = Compat.getCompoundList(tag, KEY_ENTRIES);
         for (int i = 0; i < list.size(); i++) {
-            CompoundTag one = list.getCompound(i);
-            int legacyValue = one.getInt(KEY_COUNT);
+            CompoundTag one = Compat.getCompoundAt(list, i);
+            if (one == null) {
+                // ≥1.21.5 的 ListTag#getCompound(int) 返回 Optional，非复合元素取到 null；
+                // ≤1.21.4 返回的是空 CompoundTag。这里统一跳过，避免旧档被手改/损坏后
+                // 在较新版本上抛 NPE（旧的几个版本只是静默忽略）。
+                continue;
+            }
+            int legacyValue = Compat.getInt(one, KEY_COUNT, 0);
             if (legacyValue > 0) {
-                data.counts.put(one.getLong(KEY_POS), legacyValue);
+                data.counts.put(Compat.getLong(one, KEY_POS, 0L), legacyValue);
             }
         }
         return data;

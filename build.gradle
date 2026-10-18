@@ -35,8 +35,11 @@ ext.useFabricRepo = !project.hasProperty('noFabricRepo')
 buildscript {
     repositories {
         maven { name = 'LocalMirror'; url = 'local-maven' }
+        // BMCLAPI：maven.fabricmc.net 在本机「Gradle 拿不到字节」，但同一个镜像用 curl 能下，
+        // 用它兜住 Fabric 独有的构件（sponge-mixin、tiny-remapper、stitch…）。
+        maven { name = 'BMCLAPI'; url = 'https://bmclapi2.bangbang93.com/maven' }
         maven { name = 'Aliyun'; url = 'https://maven.aliyun.com/repository/public' }
-        // loom 及其依赖都已经在 local-maven 里，正常不会走到这个仓库；留作兜底。
+        // loom 及其依赖都已经在 local-maven / BMCLAPI 里，正常不会走到这个仓库；留作兜底。
         maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
         mavenCentral()
     }
@@ -66,11 +69,13 @@ group = project.maven_group
 // 因此也没有 -Pdebug 开关，更不需要为了"排除调试类"而用反射注册命令。
 // ---------------------------------------------------------------------------
 base {
-    archivesName = project.archives_base_name
+    archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
 }
 
 repositories {
     maven { name = 'LocalMirror'; url = 'local-maven' }
+    // BMCLAPI：同上，兜住 Fabric 独有的构件（Gradle 直连 maven.fabricmc.net 会挂死）。
+    maven { name = 'BMCLAPI'; url = 'https://bmclapi2.bangbang93.com/maven' }
     maven { name = 'Aliyun'; url = 'https://maven.aliyun.com/repository/public' }
     if (useFabricRepo) {
         maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
@@ -85,11 +90,43 @@ dependencies {
     // 所以附属也必须用同一套映射，否则类型对不上（例如玩家类型在两套映射里名字不同）
     mappings loom.officialMojangMappings()
 
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Fabric Loader：优先用 libs/ 里的本地副本（这台机器上 Gradle 从
+    // maven.fabricmc.net 拉 loader 时会挂死，参见 _cof_multiver/HANDOVER.md 第五节）。
+    // sponge-mixin 同理：libs/sponge-mixin.jar 存在时直接用本地文件，
+    // 避免 Gradle 去不可达的仓库解析它的传递依赖。
+    def cofLoaderJar = file("libs/fabric-loader-${project.loader_version}.jar")
+    if (cofLoaderJar.exists()) {
+        modImplementation files(cofLoaderJar)
+    } else {
+        modImplementation("net.fabricmc:fabric-loader:${project.loader_version}") {
+            if (file("libs/sponge-mixin.jar").exists()) {
+                exclude group: 'net.fabricmc', module: 'sponge-mixin'
+            }
+        }
+    }
+    def cofMixinJar = file("libs/sponge-mixin.jar")
+    if (cofMixinJar.exists()) {
+        implementation files(cofMixinJar)
+        // ⚠️ 必须同时挂到注解处理器路径：mixin 的 refmap 就是由 sponge-mixin 里的
+        // 注解处理器在 compileJava 阶段生成的。少了它 → jar 里没有 cof-refmap.json ✗
+        // → dev 环境（named 映射）还能按方法名注入、看着正常，但**正式环境（混淆/中介名）
+        // 找不到目标方法，mixin 会静默失效** ✗。本次实测踩过这个坑。
+        annotationProcessor files(cofMixinJar)
+    }
 
     // Carpet 本体：放在 libs/ 里的正式版 jar，Loom 会自动把它从
     // intermediary 命名空间重映射到开发命名空间，因此可以直接编译引用。
     modImplementation files("libs/${project.carpet_jar}")
+}
+
+// sponge-mixin 是 Loom 自己加进各种配置的模块依赖。本机 Gradle 解析它时会走到
+// 不可达的 maven.fabricmc.net 而死等（那几个能用的镜像都排在它后面、
+// 且这条依赖走的是另一条解析路径）→ 全局排除，改用 libs/sponge-mixin.jar 本地文件
+// （各 0.16.x 的 mixin 注解 API 相互兼容，我们只用注解与 Injection 相关 API）。
+if (file("libs/sponge-mixin.jar").exists()) {
+    configurations.all {
+        exclude group: 'net.fabricmc', module: 'sponge-mixin'
+    }
 }
 
 // 注意：本模组**不依赖 Fabric API**。
@@ -103,8 +140,12 @@ dependencies {
 processResources {
     inputs.property "version", project.version
     inputs.property "mod_name", project.mod_display_name
+    // 依赖令牌也必须登记为输入 ✓ 否则改它们不会让资源处理重跑（jar 里会残留旧声明 ✗）
+    inputs.property "minecraft_dependency", project.minecraft_dependency
+    inputs.property "carpet_dependency", project.carpet_dependency
+    inputs.property "loader_dependency", project.loader_dependency
     filesMatching("fabric.mod.json") {
-        filter(ReplaceTokens, tokens: [version: project.version.toString(), mod_name: project.mod_display_name])
+        filter(ReplaceTokens, tokens: [version: project.version.toString(), mod_name: project.mod_display_name, minecraft_dependency: project.minecraft_dependency, carpet_dependency: project.carpet_dependency, loader_dependency: project.loader_dependency])
     }
 }
 
@@ -121,10 +162,14 @@ java {
     }
 }
 
+// 类文件不保留 LocalVariableTable：行号仍然保留（栈追踪可定位），
+// 只丢局部变量名 —— 实测每个 jar 约小 9%。
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << "-g:source,lines"
+}
+
 jar {
-    from("LICENSE") {
-        rename { "${it}_cof" }
-    }
+    from("LICENSE")
 }
 
 // 源码归档同样附上许可证：MIT 要求分发副本携带版权与许可声明
@@ -135,7 +180,74 @@ tasks.matching { it.name == 'sourcesJar' }.configureEach {
     // 缺失而启动失败，和主 jar 同放还会撞 mod id。
     exclude 'fabric.mod.json'
     exclude 'cof.mixins.json'
-    from("LICENSE") {
-        rename { "${it}_cof" }
+    // 图标与语言文件已随主 jar 分发，源码包里不需要再重复一份（约 10 KB）
+    exclude 'assets/**'
+    from("LICENSE")
+
+    // 源码包里把 clusterC / clusterA21 的目录前缀剥掉（c11/、a21/），让路径与包名一致。
+    // 这层前缀只是为了让 Gradle 的全局 exclude 不误伤主包里的同名文件；
+    // 到了源码包阶段，主包的对应文件本来就被排除了，不会产生重名条目。
+    eachFile { f ->
+        if (f.path.startsWith('c11/') || f.path.startsWith('a21/')) {
+            f.path = f.path.substring(4)
+        }
     }
+    // 重命名后 c11/、a21/ 目录已空；不写目录条目，避免残留带前缀的空目录
+    includeEmptyDirs = false
+}
+
+// ---------- 多版本：按 MC 小版本选择兼容层源码集 ----------
+// 1.21 ~ 1.21.4 → clusterA（旧 NBT/职业/效果/存档 API）
+// 1.21.5 起     → clusterB（1.21.5 一次性重构后的新 API）
+// 1.21.11 起    → clusterC（实体类包名再下沉一层：npc.villager / monster.zombie / animal.golem）
+// 两份 Compat.java 同名同包，编译期只会存在一套（无死代码、无重复类）
+def cofMc = project.minecraft_version.toString()
+def cofClusterA = (['1.21', '1.21.1', '1.21.2', '1.21.3', '1.21.4'] as Set).contains(cofMc)
+def cofClusterC = (['1.21.11'] as Set).contains(cofMc)
+// 1.21 / 1.21.1：Biome#getPrecipitationAt 还没有海平面参数，雪线判断要单独一份。
+def cofClusterA21 = (['1.21', '1.21.1'] as Set).contains(cofMc)
+sourceSets.main.java.srcDir(cofClusterA ? 'src/clusterA/java' : 'src/clusterB/java')
+if (!cofClusterA) {
+    // 1.21.5 与 1.21.6+ 的实体存档 API 不同（CompoundTag vs ValueOutput/ValueInput）
+    // → 只有 VillagerConvertingSaveMixin 这一个文件需要再分一刀，其余全部共用。
+    // 1.21.11（clusterC）的存档 mixin 引用的实体类也搬了家，所以它用自己的版本。
+    def cofClusterB5 = (cofMc == '1.21.5')
+    if (cofClusterB5) {
+        sourceSets.main.java.srcDir('src/clusterB5/java')
+    } else if (!cofClusterC) {
+        sourceSets.main.java.srcDir('src/clusterB6/java')
+    }
+}
+if (cofClusterC) {
+    // 1.21.11 把实体类下沉了一层包名、并把 ResourceLocation 改名成 Identifier，
+    // 凡是直接引用这些类的源文件都得换一份。旧的那份（在 main / clusterB 里）先排除掉，
+    // 由 clusterC 提供移植版，因此每个构建的类路径上仍然只会存在一套。
+    //
+    // ⚠️ 关键：SourceDirectorySet 的 exclude 按「相对各源码根目录」匹配，是全局的。
+    // 所以 clusterC 的文件**不能**与 main 的相对路径相同（否则会被一起排掉），
+    // 本目录因此多了一层 c11/ 前缀：src/clusterC/java/c11/carpet/cof/…
+    // （Java 包名由文件内 package 声明决定，与目录层级无关，不影响编译。）
+    sourceSets.main.java.exclude(
+            'carpet/cof/CofDebugCommand.java',
+            'carpet/cof/compat/Compat.java',
+            'carpet/cof/mixin/HurtByTargetGoalMixin.java',
+            'carpet/cof/mixin/IronGolemAttackMixin.java',
+            'carpet/cof/mixin/ResetProfessionMixin.java',
+            'carpet/cof/mixin/TargetGoalContinueMixin.java',
+            'carpet/cof/mixin/VillagerNitwitConversionMixin.java',
+            'carpet/cof/mixin/VillagerReleasePoiMixin.java',
+            'carpet/cof/mixin/VillagerReputationPriceMixin.java',
+            'carpet/cof/mixin/VillagerTradesEnchantBookMixin.java',
+            'carpet/cof/mixin/VillagerTradesEnchantedItemMixin.java',
+            'carpet/cof/mixin/VillagerTradesExtraBooksMixin.java',
+            'carpet/cof/mixin/VillagerConvertingSaveMixin.java',
+            'carpet/cof/mixin/ZombieVillagerInstantCureMixin.java')
+    sourceSets.main.java.srcDir('src/clusterC/java')
+}
+if (cofClusterA21) {
+    // 1.21 / 1.21.1：Biome#getPrecipitationAt 还没有海平面参数 → 雪线判断单独一份。
+    // 目录同样多一层 a21/ 前缀，避开上面那类"相对路径相同被一起排除"的坑。
+    sourceSets.main.java.exclude(
+            'carpet/cof/compat/SnowCheck.java')
+    sourceSets.main.java.srcDir('src/clusterA21/java')
 }

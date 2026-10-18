@@ -1,6 +1,98 @@
 # 更新日志
 
-本项目遵循「一版一 tag」：`gradle.properties` 里的 `mod_version` 与 git tag `vX.Y.Z` 对应，发行产物是 `dist/Carpet-CoF-Addition-<版本>.jar`。
+本项目遵循「一版一 tag」：`gradle.properties` 里的 `mod_version` 与 git tag `vX.Y.Z` 对应，发行产物是 `dist/Carpet-CoF-Addition-mc<MC 版本>-<模组版本>.jar`（源码包在 `dist/sources/`）。
+
+## 1.1.2
+
+多版本适配：同一套功能为 **12 个 Minecraft 版本**各出一个 jar（1.21 ~ 1.21.11），全部构建与运行验证通过。
+
+### 新内容
+
+- **一个 MC 版本一个 jar**。构建时用 `gradle.properties` 里的 `minecraft_version` 选择对应源码集，
+  同一份业务代码按版本差异自动切换兼容层，产物命名为
+  `Carpet-CoF-Addition-mc<MC 版本>-<模组版本>.jar`。支持矩阵（均为实测通过的组合）：
+
+  | Minecraft | Carpet | Fabric Loader |
+  | --- | --- | --- |
+  | 1.21 / 1.21.1 | 1.4.147 | ≥ 0.16.9 |
+  | 1.21.2 / 1.21.3 | 1.4.158 | ≥ 0.16.9 |
+  | 1.21.4 | 1.4.161 | ≥ 0.16.9 |
+  | 1.21.5 | 1.4.169 | ≥ 0.16.10 |
+  | 1.21.6 | 1.4.176 | ≥ 0.16.10 |
+  | 1.21.7 / 1.21.8 | 1.4.177 | ≥ 0.16.10 |
+  | 1.21.9 | 1.4.185 | ≥ 0.16.10 |
+  | 1.21.10 | 1.4.188 | ≥ 0.16.10 |
+  | 1.21.11 | 1.4.194 | ≥ 0.18.2 |
+
+  每个 jar 的 `fabric.mod.json` 只声明它对应的那个 MC 版本与所需的最低 Carpet 版本，
+  因此装错版本会由加载器直接拒绝，而不是启动到一半才崩。
+
+- **源码按版本分层**（对使用者不可见，仅说明为什么需要多个 jar）：
+
+  | 源码集 | 覆盖版本 | 差异 |
+  | --- | --- | --- |
+  | `main` | 全部 | 业务逻辑与绝大部分 mixin |
+  | `clusterA` | 1.21 ~ 1.21.4 | 旧 NBT / 职业 / 效果 / 存档 API |
+  | `clusterB` | 1.21.5 ~ 1.21.11 | 1.21.5 重构后的新 API |
+  | `clusterB5` | 1.21.5 | 实体存档仍是 `CompoundTag` |
+  | `clusterB6` | 1.21.6 ~ 1.21.10 | 实体存档改为 `ValueOutput` / `ValueInput` |
+  | `clusterC` | 1.21.11 | 实体类包名下沉、`ResourceLocation` 改名 `Identifier`、权限改为 `PermissionSet` |
+
+### 变更
+
+- **「傻子可逆转化」重定义为「傻子转化」（重置器语义）**：不再备份/还原任何数据。
+  - 村民 → 傻子（虚弱 + 毒马铃薯）：立刻**放弃工作方块认领**、交易清空；
+  - 傻子 → 普通村民（生命恢复 + 金苹果）：**洗掉职业**、交易历史清空、经验归零、职业等级回到 1，
+    **只保留群系风格外观**；
+  - 与是否绑定过职业、是否交易过无关；两次转化各 3~5 分钟，倒计时存进实体 NBT，**跨重启继续**（与原版治愈一致）。
+  - 随之删除了整套备份/搬运机制：`CofNitwitBackup` 标签、村民与僵尸村民两侧的 6 个搬运 mixin、
+    4 份备份存档 mixin，以及"重新认领工作站点"的相关代码。
+
+- **「声望不涨价」扩展为「村民交易不涨价」（`reputationNoPriceHike`，id 不变）**：除了负声望，
+  补货累积的 `demand` 也不再抬价。实现改为在 `MerchantOffer#getModifiedCostCount` 的返回值上
+  把最终价格钳在基础价以内 —— 买入与卖出两个方向同时生效，所有折扣（英雄 buff 等）照常保留。
+
+- **README 精简**：删除「安装」与「常见问题」两个栏目；「依赖」只保留 Carpet 仓库、Fabric Loader、
+  Java 21 三个链接，不再逐版本列出 Carpet 版本表（版本对应关系仍由 jar 文件名与
+  `fabric.mod.json` 的依赖声明保证）。
+
+- **新增「快速转化」（`instantVillagerConversion`，默认关）**：治愈僵尸村民与傻子转化都不再需要等待 ——
+  僵尸村民侧把原版治愈倒计时压到 1 tick，傻子转化侧把倒计时设为 1 tick；对"已经在进行中"的转化也立即收尾，
+  存档里正在转化的实体会在读档后立刻完成。转化条件与结果完全不变。
+
+- **新增 `/cofdebug poi <坐标>` 诊断子命令**（只读）：显示该方块是否为 POI、POI 类型（注册表 id）、
+  占用票数与空位数；副作用是给"把该方块当作工作站点"的村民（128 格内）加 10 秒发光，便于核对绑定关系。
+
+### 修复
+
+- **旧格式（`Entries` 列表）存档读到非复合条目时的健壮性**：1.21.5 起 `ListTag#getCompound(int)` 返回
+  `Optional`，兼容层在"非复合元素"上会得到 `null`（≤1.21.4 得到的是空 `CompoundTag`），而读取旧格式
+  的代码会直接解引用它。现在统一跳过这类条目，两边的行为一致（旧版本本来就是静默忽略）。
+
+- **炼药锅结冰在"降水判定"上被误判，导致规则从不触发（全部版本）**：原来用
+  `Biome#shouldSnow(level, pos)` 判断"该处降水形态是雪"，但这个方法除了气候还会检查
+  **坐标上的方块是不是空气或雪层** —— 而我们传进去的坐标上放的就是炼药锅，于是恒为 `false`，
+  表现为「原本判定为雪的位置，放上炼药锅后就变成非雪」，规则永远不结冰。
+  现改用纯气候判断（`Biome#getPrecipitationAt(...) == SNOW`，按版本抽成 `SnowCheck` 三份），
+  `/cofdebug data` 的「降水」一行同步修正。
+
+### 版本差异说明
+
+- **12 个版本的功能行为一致**，没有功能降级。各版本之间只有"为了适配原版 API/结构"的实现差异
+  （见下面的适配要点表），对使用者不可见。
+
+### 1.21.11 的适配要点（供维护参考）
+
+1.21.11 对原版做了几处重命名/重构，凡是直接引用这些 API 的源文件都提供了 `clusterC` 版本：
+
+| 原版变化 | 我们的处理 |
+| --- | --- |
+| 实体类下沉包名：`npc.Villager` → `npc.villager.Villager`、`monster.ZombieVillager` → `monster.zombie.ZombieVillager`、`animal.IronGolem` → `animal.golem.IronGolem` | 13 个 mixin + 调试命令改 import；`VillagerTrades$…` 的 `@Mixin(targets=…)` 字符串同步改 |
+| `net.minecraft.resources.ResourceLocation` → `net.minecraft.resources.Identifier`、`ResourceKey#location()` → `identifier()` | `Compat` 与两个转化相关 mixin 里整体改名 |
+| 铁傀儡愤怒从「剩余 tick 数 `remainingPersistentAngerTime`(int)」改成「结束时间戳 `persistentAngerEndTime`(long)」，`-1` 表示不愤怒 | 「正义的伙伴」改为拦 `setPersistentAngerEndTime` / `getPersistentAngerEndTime`，钉成 `-1` |
+| 命令权限从 `CommandSourceStack#hasPermission(int)` 改成 `PermissionSet` + `Permission` 常量 | `/cofdebug` 的数字等级映射到 `Permissions.COMMANDS_*` 常量 |
+| Carpet 1.4.194 要求 loader ≥ 0.18.2、且其 jar manifest 标记了 `Fabric-Loom-Version: 1.13.6` | 1.21.11 目标的 `loader_version` 用 0.18.2；构建脚本用本地副本时剥掉该 manifest 行 |
+
 
 ## 1.1.1
 

@@ -4,7 +4,7 @@
   "version": "@version@",
 
   "name": "@mod_name@",
-  "description": "一批可开关的原版改动（共 14 条规则）：炼药锅结冰与产物、水桶/水瓶不消耗、村民低价与声望调价、铁傀儡不主动攻击玩家、新手村民交易不重置、火药点火、村民与傻子可逆转化、图书管理员售卖全部宝藏附魔书等。A Carpet add-on with 14 toggleable vanilla tweaks: cauldron freezing and its product, non-consuming buckets and bottles, villager trade prices and reputation, passive iron golems, persistent novice trades, ignitable gunpowder, reversible villager/nitwit conversion, and librarian trades for every treasure enchantment book.",
+  "description": "一批可开关的原版改动（共 15 条规则）：炼药锅结冰与产物、水桶/水瓶不消耗、村民低价与交易不涨价、铁傀儡不主动攻击玩家、新手村民交易不重置、火药点火、村民与傻子互相转化（转回时重置职业、经验与交易）、二者与僵尸村民治愈的快速转化、图书管理员售卖全部宝藏附魔书等。A Carpet add-on with 15 toggleable vanilla tweaks: cauldron freezing and its product, non-consuming buckets and bottles, villager trade prices and price hikes, passive iron golems, persistent novice trades, ignitable gunpowder, villager/nitwit conversion that resets profession, experience and trades on the way back, instant conversions, and librarian trades for every treasure enchantment book.",
   "license": "MIT",
   "icon": "assets/cof/icon.png",
   "authors": [
@@ -27,9 +27,9 @@
   ],
 
   "depends": {
-    "fabricloader": ">=0.16.9",
-    "minecraft": "~1.21.4",
+    "fabricloader": "@loader_dependency@",
+    "minecraft": "@minecraft_dependency@",
     "java": ">=21",
-    "carpet": ">=1.4.161"
+    "carpet": "@carpet_dependency@"
   }
 }

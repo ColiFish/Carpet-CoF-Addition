@@ -85,9 +85,18 @@ Villagers sell at the bottom of each trade price range; only newly rolled trades
 - Options: `false`, `true`
 - Categories: `CoF`, `survival`, `feature`
 
-## No Reputation Price Hike (reputationNoPriceHike)
+## Villager Trade No Price Hike (reputationNoPriceHike)
 
-Reputation can only lower villager prices, never raise them.
+Villager trade prices never exceed their original price.
+
+- **Negative reputation**: vanilla turns reputation into a price modifier and negative reputation
+  raises prices; this rule only allows it to lower them.
+- **Restocking (demand)**: every restock accumulates `demand` for trades that were used a lot, making
+  frequently traded villagers charge more over time; this rule caps the final price at the base price,
+  so demand can no longer raise it.
+- **Discounts** such as Hero of the Village still apply (prices can only get cheaper).
+- Both directions are covered (you buying from the villager and the villager buying from you), because
+  the rule caps the single place where the final price is computed.
 
 - Type: `boolean`
 - Default: `false`
@@ -122,9 +131,22 @@ Gunpowder can ignite fire just like a fire charge.
 - Options: `false`, `true`
 - Categories: `CoF`, `survival`, `feature`
 
-## Reversible Nitwit Conversion (nitwitConversion)
+## Nitwit Conversion (nitwitConversion)
 
-An adult villager fed a poisonous potato while weakened becomes a nitwit; a nitwit fed a golden apple while regenerating turns back into its original profession, and the profession, experience and trades are preserved so the conversion can be reversed at any time.
+An adult villager fed a poisonous potato while weakened becomes a nitwit: it **immediately gives up its workstation
+claim** and its trades are cleared, while its biome style is untouched. A nitwit fed a golden apple while under
+Regeneration turns back into an **unemployed** villager - trades cleared, experience zeroed, profession level reset
+to 1, and only the biome style kept. Both directions take 3-5 minutes and can be repeated; whether the villager ever
+held a profession or traded makes no difference.
+
+- Type: `boolean`
+- Default: `false`
+- Options: `false`, `true`
+- Categories: `CoF`, `survival`, `feature`
+
+## Instant villager conversion (instantVillagerConversion)
+
+Curing zombie villagers and nitwit conversion happen instantly, with no waiting time.
 
 - Type: `boolean`
 - Default: `false`

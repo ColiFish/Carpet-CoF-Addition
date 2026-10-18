@@ -3,6 +3,9 @@
 
 package carpet.cof;
 
+import carpet.cof.compat.Compat;
+import carpet.cof.compat.SnowCheck;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -20,6 +23,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.entity.ai.village.poi.PoiRecord;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -34,6 +41,10 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -231,6 +242,59 @@ public final class CofDebugCommand {
                             return 1;
                         })));
 
+        // ---- /cofdebug poi <pos>
+        // 只读诊断：这个方块是不是工作站点、被占了几票；并给"绑定该方块的村民"加 10 秒发光便于辨认。
+        root.then(Commands.literal("poi")
+                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                        .executes(context -> {
+                            ServerLevel level = context.getSource().getLevel();
+                            BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+                            PoiManager poiManager = level.getPoiManager();
+                            MutableComponent out = header("poi", pos.toShortString()).append(nl());
+                            out = out.append(row("方块",
+                                    level.getBlockState(pos).getBlock().getName().getString(), VAL)).append(nl());
+
+                            java.util.Optional<Holder<PoiType>> type = poiManager.getType(pos);
+                            if (type.isEmpty()) {
+                                out = out.append(row("POI", "该位置不是任何 POI", BAD)).append(nl());
+                            } else {
+                                out = out.append(row("POI 类型", Compat.poiTypeId(type.get()), VAL)).append(nl());
+                                PoiRecord record = poiManager
+                                        .getInChunk(t -> true, new ChunkPos(pos), PoiManager.Occupancy.ANY)
+                                        .filter(r -> r.getPos().equals(pos))
+                                        .findFirst()
+                                        .orElse(null);
+                                if (record == null) {
+                                    out = out.append(row("记录", "有 POI 类型但找不到记录（区块未加载/未生成？）", BAD)).append(nl());
+                                } else {
+                                    // getFreeTickets() 在 1.21.10+ 已标记过时；改用 isOccupied()。
+                                    // 工作站点（POI 上限为 1）下两者语义等价，上限 >1 的少数类型另有分支。
+                                    int max = type.get().value().maxTickets();
+                                    boolean occupied = record.isOccupied();
+                                    if (max <= 1) {
+                                        out = out.append(row("占用", (occupied ? 1 : 0) + " / " + max,
+                                                occupied ? BAD : OK)).append(nl());
+                                        out = out.append(row("空位", occupied ? "0" : String.valueOf(max),
+                                                occupied ? BAD : OK)).append(nl());
+                                    } else {
+                                        out = out.append(row("占用", occupied ? "已占用" : "空闲",
+                                                occupied ? BAD : OK)).append(nl());
+                                        out = out.append(row("上限", String.valueOf(max), VAL)).append(nl());
+                                    }
+                                }
+                            }
+
+                                                        // 给“把这个方块当作工作站点”的村民加 10 秒发光（128 格内），不写进输出
+                            for (Villager villager : level.getEntitiesOfClass(Villager.class, new AABB(pos).inflate(128.0))) {
+                                GlobalPos job = villager.getBrain().getMemory(MemoryModuleType.JOB_SITE).orElse(null);
+                                if (job != null && job.pos().equals(pos) && job.dimension().equals(level.dimension())) {
+                                    villager.addEffect(new MobEffectInstance(Compat.glowing(), 200, 0));
+                                }
+                            }
+                            reply(context, out);
+                            return 1;
+                        })));
+
         // ---- /cofdebug data <pos> [value]
         root.then(Commands.literal("data")
                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
@@ -358,7 +422,7 @@ public final class CofDebugCommand {
 
         reply(context, header("use", pos.toShortString())
                 .append(nl())
-                .append(row("执行者", player.getGameProfile().getName()
+                .append(row("执行者", player.getScoreboardName()
                         + (player.isCreative() ? "（创造模式：手持物不会消耗）" : ""), VAL))
                 .append(nl())
                 .append(row("手持物品", describe(held), VAL))
@@ -388,7 +452,7 @@ public final class CofDebugCommand {
         if (player.isCreative()) {
             reply(context, header("bucketcheck", "")
                     .append(nl())
-                    .append(row("跳过", player.getGameProfile().getName()
+                    .append(row("跳过", player.getScoreboardName()
                             + " 处于创造模式：原版本就不消耗水桶，该方法还会把测试物品放进背包，"
                             + "无法验证规则；请用生存模式玩家测试", BAD)));
             return 0;
@@ -414,7 +478,7 @@ public final class CofDebugCommand {
                     // 创造模式下原版走"无限材料"分支（getEmptySuccessItem 直接返回输入堆），
         MutableComponent out = header("bucketcheck", "")
                 .append(nl())
-                .append(row("执行者", player.getGameProfile().getName(), VAL))
+                .append(row("执行者", player.getScoreboardName(), VAL))
                 .append(nl())
                 .append(row("规则", "waterBucketNotConsumed = " + rule, VAL))
                 .append(nl())
@@ -450,7 +514,7 @@ public final class CofDebugCommand {
             return 0;
         }
 
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = (ServerLevel) player.level();   // serverLevel() 在 1.21.6 被改名 → 用协变强转，两版通用 ✓
         List<Villager> villagers = level.getEntitiesOfClass(Villager.class, player.getBoundingBox().inflate(64.0));
         if (villagers.isEmpty()) {
             reply(context, header("reputation", player.getName().getString())
@@ -568,8 +632,10 @@ public final class CofDebugCommand {
         // 所以这里取注册表里的 id；拿不到时给个明确占位符
         String biomeId = biomeHolder.unwrapKey().map(key -> key.location().toString())
                 .orElse("(不在注册表中)");
-        Biome.Precipitation precipitation = biome.getPrecipitationAt(target, level.getSeaLevel());
-        boolean snow = precipitation == Biome.Precipitation.SNOW;
+        // 纯气候判断：shouldSnow 还会要求"坐标上的方块是空气或雪层"，诊断时那个位置上
+        // 放的正是炼药锅，会误报成"非雪"（规则本身也走同一个判断）。
+        boolean snow = SnowCheck.snowsHere(level, target);
+
         boolean sky = level.canSeeSky(target.above());
         int light = level.getBrightness(LightLayer.BLOCK, target);
         boolean lightOk = light < 10;
@@ -598,7 +664,7 @@ public final class CofDebugCommand {
                 .append(nl())
                 .append(row("群系", biomeId, VAL))
                 .append(nl())
-                .append(row("降水", String.valueOf(precipitation), mark(snow)))
+                .append(row("降水", snow ? "雪" : "非雪", mark(snow)))
                 .append(nl())
                 .append(row("露天", yes(sky), mark(sky)))
                 .append(nl())

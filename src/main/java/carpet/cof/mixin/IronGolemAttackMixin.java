@@ -7,6 +7,7 @@ import carpet.cof.CofSettings;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *       否则先打傀儡、再开规则、再关规则时，残留计时会立刻生效（实测复现过）。
  *       字段 {@code remainingPersistentAngerTime} 声明在 {@code IronGolem} 自己，可直接 shadow。</li>
  *   <li>{@code doHurtTarget}：即便已锁定玩家（例如规则是追击开始后才打开的），
- *       挥击时取消伤害并立刻 {@code setTarget(null)} 放弃目标。</li>
+ *       干脆不接受玩家作为攻击目标（{@code canAttackType} 返回 false）。</li>
  * </ol>
  *
  * <p>所有注入点与字段都声明在 {@code IronGolem} 本类，避开"成员其实在父类"这类运行期错误。</p>
@@ -49,12 +50,10 @@ public abstract class IronGolemAttackMixin {
         }
     }
 
-    @Inject(
-            method = "doHurtTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;)Z",
+    @Inject(method = "canAttackType(Lnet/minecraft/world/entity/EntityType;)Z",
             at = @At("HEAD"), cancellable = true)
-    private void cof$righteousCompanion(ServerLevel level, Entity target, CallbackInfoReturnable<Boolean> cir) {
-        if (CofSettings.righteousCompanion && target instanceof Player) {
-            ((IronGolem) (Object) this).setTarget(null);
+    private void cof$righteousCompanion(EntityType<?> type, CallbackInfoReturnable<Boolean> cir) {
+        if (CofSettings.righteousCompanion && type == EntityType.PLAYER) {
             cir.setReturnValue(false);
         }
     }

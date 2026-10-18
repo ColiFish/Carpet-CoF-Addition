@@ -21,9 +21,10 @@
     "GunpowderIgniteMixin",
     "FireChargeItemSoundMixin",
     "VillagerNitwitConversionMixin",
-    "ZombieVillagerNitwitBackupMixin",
-    "ZombieNitwitBackupMixin",
-    "VillagerTradesExtraBooksMixin"
+    "VillagerTradesExtraBooksMixin",
+    "VillagerConvertingSaveMixin",
+    "MerchantOfferPriceCapMixin",
+    "ZombieVillagerInstantCureMixin"
   ],
   "injectors": {
     "defaultRequire": 1

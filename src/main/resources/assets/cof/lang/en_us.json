@@ -9,10 +9,11 @@
   "carpet.rule.cauldronFreezingChance.desc": "Freeze check frequency: 48 matches vanilla water freezing, smaller values freeze faster.",
   "carpet.rule.cauldronFreezingRequiresFullWater.desc": "Whether a filled water cauldron must be at full water level to freeze.",
   "carpet.rule.lowPriceVillagers.desc": "Villagers sell at the bottom of each trade price range; only newly rolled trades are affected.",
-  "carpet.rule.reputationNoPriceHike.desc": "Reputation can only lower villager prices, never raise them.",
+  "carpet.rule.reputationNoPriceHike.desc": "Villager trade prices never exceed their original price.",
   "carpet.rule.righteousCompanion.desc": "Iron golems never attack players on their own: they stop acting on village gossip and no longer retaliate when hit, and any golem already chasing a player gives up immediately - but once the rule is turned off they are affected by village gossip again right away.",
   "carpet.rule.noviceVillagerTradeNotReset.desc": "Novice villagers never re-roll their trades because they lost their workstation on their own.",
   "carpet.rule.flammableGunpowder.desc": "Gunpowder can ignite fire just like a fire charge.",
-  "carpet.rule.nitwitConversion.desc": "An adult villager fed a poisonous potato while weakened becomes a nitwit, and a nitwit fed a golden apple while regenerating turns back into its original profession; profession, experience and trades are preserved so the conversion can be reversed at any time.",
+  "carpet.rule.instantVillagerConversion.desc": "Curing zombie villagers and nitwit conversion happen instantly, with no waiting time.",
+  "carpet.rule.nitwitConversion.desc": "An adult villager fed a poisonous potato while weakened becomes a nitwit; a nitwit fed a golden apple while under Regeneration turns back into an ordinary villager. Profession, experience and trades are all reset.",
   "carpet.rule.libraryOfAlexandria.desc": "Librarians can sell enchanted books of every kind."
 }

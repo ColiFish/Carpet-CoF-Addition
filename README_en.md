@@ -4,21 +4,21 @@
 
 ## Requirements
 
-| Dependency | Exact version | Download |
-| --- | --- | --- |
-| Minecraft | **1.21.4** | — |
-| Fabric Loader | **≥ 0.16.9** | [client](https://fabricmc.net/use/installer/) / [server](https://fabricmc.net/use/server/) |
-| [Carpet](https://github.com/gnembon/fabric-carpet) | **1.4.161+v241203** (MC 1.21.4 build) | [Modrinth](https://modrinth.com/mod/carpet/versions?g=1.21.4) · [GitHub Releases](https://github.com/gnembon/fabric-carpet/releases) |
-| Java | **21** | [Official Oracle download (Java 21)](https://www.oracle.com/java/technologies/downloads/#java21) |
+This mod ships one jar per Minecraft version - download the one that matches your game version.
 
-## Installation
+| Dependency | Link |
+| --- | --- |
+| Carpet Mod | [gnembon/fabric-carpet](https://github.com/gnembon/fabric-carpet) |
+| Fabric Loader | [fabricmc.net/use/installer](https://fabricmc.net/use/installer/) |
+| Java 21 | [Oracle downloads (Java 21)](https://www.oracle.com/java/technologies/downloads/#java21) |
 
-1. **Server**: install the [Fabric server](https://fabricmc.net/use/server/), then drop both **Carpet** and this mod into the server's `mods/` folder
-2. **Single-player / LAN**: the client needs Fabric + Carpet + this mod too — Carpet is declared as a hard dependency, so a client without it fails to start
+Use the latest Carpet release for your Minecraft version and any mainstream Fabric Loader build for it; Java 21 is required.
+
+> **All 12 versions behave identically** - no feature is downgraded; each jar only serves its own Minecraft version.
 
 ## Download
 
-Download this mod from [Releases](../../releases).
+Download this mod from [Releases](../../releases): pick the jar whose `mc` version matches your game exactly.
 
 You only need to install Java 21 yourself for a **self-hosted server** or when launching with a manually specified Java: the official launcher ships its own runtime, and launchers such as HMCL / PCL can download one automatically.
 
@@ -26,79 +26,10 @@ You only need to install Java 21 yourself for a **self-hosted server** or when l
 
 | Document | Content |
 | --- | --- |
-| [Rules](docs/en/rules.md) | All 14 rules: description, type, default, options and categories |
+| [Rules](docs/en/rules.md) | All 15 rules: description, type, default, options and categories |
 | [Commands](docs/en/commands.md) | Syntax and effects of every `/cofdebug` subcommand |
 
 Chinese version: [README.md](README.md) · [docs/zh/](docs/zh/) (the same two documents in Chinese)
-
-## FAQ
-
-**The rule is on but the cauldron never freezes.**
-
-All four conditions must hold at once: snow-capable biome, the cauldron sits on the column surface with open sky above, block light < 10, and enough water (full by default). On top of that, **a player or a Carpet fake player must be within simulation distance** — loading chunks with `forceload` alone never triggers the check. `/cofdebug data <pos>` shows which condition fails.
-
-**Why is everything off by default?**
-
-That is the convention for Carpet-based mods: features are opt-in so existing worlds and servers are never affected silently.
-
-**Does it create ice out of nothing?**
-
-No. The water is **actually consumed**: on the producing freeze the cauldron is emptied, exactly like vanilla water freezing.
-
-**Why does it not freeze on stony shores?**
-
-Freezing follows the vanilla **snow line**: the check uses `Biome#getPrecipitationAt(pos, seaLevel)`, which corrects temperature by height. Below the snow line vanilla reports rain, so no freezing happens there — moving the cauldron up or down across the snow line changes the outcome.
-
-**The bucket / bottle rules seem to do nothing in creative.**
-
-Creative mode never consumes items, so those two switches make no visible difference. Test them in survival.
-
-**What does it leave in my world?**
-
-One data file, `world/data/cof_cauldron_freezes.dat` (one per dimension), and it only stores positions that are **currently warming up** — producing, breaking or emptying a cauldron clears the record immediately. A world that never warmed up a cauldron never gets the file at all.
-
-
-**Why does right-clicking with gunpowder do nothing?**
-
-Check that Flammable Gunpowder is on. When on, right-clicking a block with gunpowder ignites like a fire charge and
-consumes one gunpowder: it lights campfires and candles, activates nether portals and primes TNT. The sound is the
-"item burning in lava" sound at a lower volume, so it differs from a real fire charge. When off, gunpowder is not
-consumed and nothing happens.
-
-**How long does the nitwit conversion take, and can it be interrupted?**
-
-3-5 minutes (the same value vanilla uses when curing a zombie villager). During it the profession stays unchanged and
-the villager accepts no interaction. If the chunk unloads (or the server stops), the countdown **pauses** instead of
-being cancelled and resumes later. **Turning the rule off mid-conversion cancels that conversion immediately**
-progress (the countdown is cleared and the Strength it granted is removed); re-enabling the rule does not resume it - feed the villager again.
-
-**Why is a villager still a nitwit after I turned Reversible Nitwit Conversion off?**
-
-The rule only governs triggering and the process itself; it never rolls back a finished conversion. To convert it
-back, give the villager **Regeneration** and feed it a golden apple - the original profession, experience and trades
-are restored, together with its workstation claim.
-
-**Why do old villagers still sell those three books after I disabled Library of Alexandria?**
-
-The rule only affects **newly generated** trades. Existing trades live in the villager's own trade list, so
-disabling the rule does not change them - the same semantics as Low Price Villagers, which only affects new (or
-newly added) trades.
-
-**Why do my rule changes revert after a restart?**
-
-`/carpet <rule> <value>` only affects the current run. Use `/carpet setDefault <rule> <value>` to store it permanently in the world config, and `/carpet removeDefault <rule>` to drop it.
-
-**Why does Low Price Villagers not affect my existing villagers?**
-
-It only affects trades rolled **after** it is enabled. Villagers with locked-in trades keep their prices; only newly generated offers (new villagers, or a new career tier from levelling up) are priced at the bottom of their range.
-
-**After turning Righteous Companion off, iron golems attack me again - did the rule fail?**
-
-No. Disabling it restores vanilla behaviour immediately: when a nearby villager's reputation for you is <= -100, golems defend the village again. Only while the rule is on do they never attack players on their own.
-
-**I broke the workstation but the villager kept its profession?**
-
-Check whether Novice Villager Trades Don't Reset is on: it only blocks the **spontaneous** refresh caused by the villager losing its own claim; **destroying the workstation block** still clears the profession as in vanilla (replace the block to re-roll trades). If breaking the block does not clear it either, the rule is not behaving as intended.
 
 ## Warning
 

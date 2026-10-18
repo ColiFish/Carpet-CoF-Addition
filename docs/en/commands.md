@@ -17,6 +17,27 @@ The mod adds exactly one command: `/cofdebug`, for inspecting the live state of 
 - **Modifies the world**: it may actually freeze and produce the product.
 - Refused while the master switch (`waterCauldronFreezing`) is off.
 
+## POI diagnostics (`/cofdebug poi`)
+
+### Syntax
+- `/cofdebug poi <pos>`
+    - `<pos>` the workstation block to inspect
+
+### Effect
+- **Read-only**: reports the POI (workstation) state at that position and changes nothing.
+- Reported lines:
+    - Block: which block is actually there;
+    - POI type: the registry id (e.g. `minecraft:weaponsmith`), or "not any POI";
+    - Occupied: `used / max` - workstations usually allow 1, so this reads `1 / 1` or `0 / 1`;
+      the few types with a higher limit show "occupied"/"free" instead;
+    - Free: remaining slots, `0` means nobody else can bind it; types with a higher limit
+      show "max N" instead;
+- **Side effect (never printed)**: every villager within 128 blocks whose `job_site` points here
+  receives a **10 s glowing** effect, so you can see in-game which villager holds the claim.
+- Typical use: when you suspect a workstation is stuck claimed and no other villager can bind it -
+  `1 / 1` with no villager glowing means the ticket leaked; `0 / 1` means the ticket is clean and
+  the villager simply has not walked over to claim it yet (vanilla claiming is slow).
+
 ## Data inspection (`/cofdebug data`)
 
 ### Syntax

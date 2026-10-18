@@ -3,6 +3,8 @@
 
 package carpet.cof;
 
+import carpet.cof.compat.SnowCheck;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -51,7 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <h2>判定条件（按需求）</h2>
  * <ol>
  *   <li><b>不要求当前正在降雪</b> —— 条件完全由位置决定</li>
- *   <li><b>在可降雪区域</b>：{@code Biome#getPrecipitationAt(pos, seaLevel) == SNOW}</li>
+ *   <li><b>在可降雪区域</b>：{@code Biome#getPrecipitationAt(pos, seaLevel) == SNOW}（纯气候，不读方块）</li>
  *   <li><b>降雪能落到这个位置</b>：只检查位于本列顶面（{@code MOTION_BLOCKING} 高度图）的锅，
  *       再叠加 {@code canSeeSky(pos.above())}，所以屋顶下、玻璃/树叶下面的锅不会被冻上</li>
  *   <li><b>该位置方块光 &lt; 10</b>（与原版水结冰一致，看的是方块光，所以白天不阻碍）</li>
@@ -286,8 +288,12 @@ public final class CauldronFreezing {
     /** 位置相关的那部分条件（天气不参与）。 */
     private static boolean canFreezeHere(ServerLevel level, BlockPos pos) {
         // 1) 可降雪区域：该处降水形态是雪（不要求此刻正在下雪）
-        Biome biome = level.getBiome(pos).value();
-        if (biome.getPrecipitationAt(pos, level.getSeaLevel()) != Biome.Precipitation.SNOW) {
+        //
+        // ⚠️ 不要用 Biome#shouldSnow：它除了气候，还会检查「坐标上的方块是空气或雪层」
+        // （字节码：getBlockState(pos).isAir() || is(Blocks.SNOW)，且雪层要能存活）。
+        // 而这里传进来的坐标上放的就是炼药锅 —— 于是判定恒为 false，规则永远不触发。
+        // getPrecipitationAt 是纯气候判断（hasPrecipitation + coldEnoughToSnow，不读方块）。
+        if (!SnowCheck.snowsHere(level, pos)) {
             return false;
         }
         // 2) 降雪能落到这个位置：头顶露天、没有遮挡
